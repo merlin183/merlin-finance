@@ -1,0 +1,32 @@
+.toss-settlements-panel{margin-bottom:18px;overflow:hidden}
+.toss-settlements-panel .panel-head{padding:18px 22px 14px}
+.toss-settlements-panel .panel-head h2{font-size:15px}
+.toss-settlements-panel .panel-head p{font-size:11px}
+.toss-settlements-summary{display:flex;gap:18px 36px;flex-wrap:wrap;margin:0 22px 12px;padding:14px 16px;border:1px solid var(--border);border-radius:8px;background:color-mix(in srgb,#198260 3%,var(--card))}
+.toss-settlements-summary>div{display:flex;flex-direction:column;gap:5px;min-width:145px}
+.toss-settlements-summary span{font-size:11px;color:var(--muted-foreground)}
+.toss-settlements-summary strong{font-size:21px;line-height:1.3;font-weight:650;letter-spacing:-.025em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.toss-settlements-details{margin:0 22px}
+.toss-settlements-details>summary{cursor:pointer;font-size:11px;font-weight:600;padding:7px 0;width:fit-content}
+.toss-settlements-details>summary>span{font-weight:400;color:var(--muted-foreground);margin-left:8px}
+.toss-settlements-details>summary:focus-visible,.toss-settlements-footnote>summary:focus-visible,.toss-settlements-scroll:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:3px}
+.toss-settlements-scroll{max-height:260px;overflow:auto;border:1px solid var(--border);border-radius:7px;overscroll-behavior:contain}
+.toss-settlements-scroll table{width:100%;border-collapse:collapse;min-width:650px;font-size:12px}
+.toss-settlements-scroll th,.toss-settlements-scroll td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle}
+.toss-settlements-scroll th{background:var(--muted);position:sticky;top:0;z-index:1;font-size:11px;font-weight:550}
+.toss-settlements-scroll th:nth-child(3),.toss-settlements-scroll th:nth-child(4),.toss-settlements-scroll td:nth-child(3),.toss-settlements-scroll td:nth-child(4){text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.toss-settlements-scroll td strong,.toss-settlements-scroll td small{display:block}
+.toss-settlements-scroll td small{color:var(--muted-foreground);margin-top:3px;font-size:10px}
+.toss-settlements-status{font-size:10px;padding:3px 6px;border-radius:4px;white-space:nowrap}
+.toss-settlements-status.is-pending{color:#047857;background:color-mix(in srgb,#198260 10%,var(--card))}
+.toss-settlements-status.is-received{color:var(--muted-foreground);background:var(--muted)}
+.toss-settlements-status.is-overdue,.toss-settlements-status.is-confirmation-needed{color:#a16207;background:color-mix(in srgb,#a16207 10%,var(--card))}
+.toss-settlements-footnote,.toss-settlements-empty{font-size:11px;color:var(--muted-foreground);line-height:1.6;margin:6px 22px 16px}
+.toss-settlements-details .toss-settlements-empty{margin-left:0;margin-right:0}
+.toss-settlements-footnote>summary{cursor:pointer;width:fit-content}
+.toss-settlements-footnote>p{margin-top:5px;max-width:720px}
+.toss-settlements-error{font-size:12px;line-height:1.6;color:var(--destructive);margin:0 22px 12px}
+.toss-settlements-error button{text-decoration:underline;margin-left:8px;cursor:pointer}
+.toss-settlements-warning{color:#a16207}
+@media(max-width:600px){.toss-settlements-panel .panel-head{padding:16px}.toss-settlements-summary{margin:0 16px 10px;padding:12px;gap:14px 22px}.toss-settlements-summary>div{min-width:125px}.toss-settlements-summary strong{font-size:19px}.toss-settlements-details{margin-left:16px;margin-right:16px}.toss-settlements-footnote,.toss-settlements-empty,.toss-settlements-error{margin-left:16px;margin-right:16px}}
+.cash-worksheet-balances .cash-worksheet-toss-income dd{color:#047857}.cash-worksheet-balances .cash-worksheet-toss-projection{background:#ecfdf5;border-radius:4px;padding:6px 4px}.funding-timeline-day .toss-calendar-income{display:block;font-size:11px;line-height:1.5;margin-top:4px}.funding-timeline-day .toss-calendar-business{font-size:10px}.toss-funding-receipts{border:1px solid #a7f3d0;border-radius:8px;padding:12px;margin:12px 0}.toss-funding-receipts h4{font-size:13px;color:#047857;margin:0 0 8px}.toss-funding-receipts ul{list-style:none;padding:0;margin:0}.toss-funding-receipts li{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:5px 0}.toss-funding-receipts li strong{white-space:nowrap;color:#047857}

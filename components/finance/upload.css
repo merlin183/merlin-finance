@@ -1,0 +1,11 @@
+.auto-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:20px;background:var(--accent);border:1px solid var(--border);border-radius:10px}
+.upload-account>p{font-size:12px;line-height:1.6}.upload-steps{font-size:12px}.upload-hint{font-size:12px;line-height:1.6}.drop-zone .upload-icon{box-shadow:none}.drop-zone>strong{font-size:16px}.drop-zone>p{font-size:13px}.drop-zone>small{font-variant-numeric:tabular-nums}.auto-summary strong{font-variant-numeric:tabular-nums}
+.auto-summary>div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.auto-summary span{font-size:14px;color:var(--muted-foreground)}
+.auto-summary strong{font-size:22px;letter-spacing:-.03em;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.auto-summary small{font-size:13px;color:var(--muted-foreground)}
+.auto-field{display:inline-flex;max-width:100%;overflow-wrap:anywhere;background:var(--accent);border-radius:6px;padding:6px 10px}
+.auto-review{background:color-mix(in srgb,var(--card) 90%,#d99e20);border:1px solid color-mix(in srgb,var(--border) 65%,#d99e20);padding:16px;border-radius:8px;font-size:14px;line-height:1.8}
+.sheet-selection{padding:16px;border:1px solid var(--border);border-radius:8px;display:grid;gap:10px}.sheet-selection label{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.sheet-selection small{color:var(--muted-foreground)}
+.preview-controls,.preview-pagination{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.preview-controls>strong{margin-right:auto}.preview-pagination{justify-content:flex-end}.preview-pagination>span:first-child{margin-right:auto;font-size:13px;color:var(--muted-foreground)}.direction-badge{display:inline-flex;padding:3px 9px;border:1px solid currentColor;border-radius:5px;white-space:nowrap;font-size:12px;font-weight:600}.partial-confirm{display:flex;gap:10px;align-items:center;margin-top:14px}
+@media(max-width:600px){.auto-summary{grid-template-columns:1fr 1fr;padding:16px}.auto-summary>div:first-child{grid-column:1/-1}.auto-summary strong{font-size:20px}}

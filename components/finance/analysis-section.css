@@ -1,0 +1,29 @@
+.analysis-section { min-width: 0; margin-top: 24px; }
+.analysis-section-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.analysis-section-heading { min-width: 0; }
+.analysis-section-heading > div { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.analysis-section-heading h2 { font-size: 17px; font-weight: 650; letter-spacing: -.035em; }
+.analysis-section-heading p { color: var(--muted-foreground); font-size: 12px; line-height: 1.7; margin-top: 6px; }
+.analysis-period-status { display: inline-flex; border-radius: 5px; padding: 4px 7px; font-size: 11px; line-height: 1.4; background: var(--muted); color: var(--muted-foreground); }
+.analysis-period-status.is-custom { color: var(--primary); background: color-mix(in srgb, var(--primary) 9%, transparent); }
+.analysis-section-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; max-width: 100%; }
+.analysis-section-actions > * { min-width: 0; max-width: 100%; }
+.analysis-section-picker { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; min-width: 0; padding: 12px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); }
+.analysis-section-picker > span { font-size: 13px; font-weight: 600; }
+.analysis-section-picker > p { font-size: 12px; line-height: 1.6; color: var(--muted-foreground); flex: 1 1 280px; }
+.consolidated-analysis .panel-head { flex-wrap: wrap; }
+.consolidated-options { flex-wrap: wrap; }
+.consolidated-options .toggle-label { flex-wrap: wrap; }
+.filterbar.analysis-filterbar { flex-wrap: wrap; }
+.analysis-filterbar > * { min-width: 0; max-width: 100%; }
+@media (max-width: 600px) {
+  .analysis-section { margin-top: 24px; }
+  .analysis-section-header { align-items: flex-start; }
+  .analysis-section-actions { width: 100%; }
+  .analysis-section-picker { padding: 14px; }
+  .analysis-section-picker .picker { flex: 1; }
+}
+@media print {
+  .analysis-section-actions, .analysis-section-picker { display: none !important; }
+  .analysis-section-header { break-after: avoid; }
+}

@@ -1,0 +1,8 @@
+import {createServerClient} from '@supabase/ssr';
+import {cookies} from 'next/headers';
+export function publicConfig(){return {url:process.env.NEXT_PUBLIC_SUPABASE_URL||'',key:process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||''}}
+export async function serverClient(){const {url,key}=publicConfig();if(!url||!key)throw Error('Supabase 프로젝트 연결을 기다리고 있습니다.');const jar=await cookies();return createServerClient(url,key,{cookies:{getAll:()=>jar.getAll(),setAll:values=>{try{values.forEach(({name,value,options})=>jar.set(name,value,{...options,sameSite:'lax'}))}catch{/* Server Components cannot update cookies; API routes refresh them. */}}}})}
+export async function signedIn(){const db=await serverClient();const {data:{user},error}=await db.auth.getUser();if(error||!user)throw new Error('UNAUTHORIZED');return {db,user}}
+export async function authenticated(){const {db,user}=await signedIn();const {data,error}=await db.rpc('fd_admin_context');if(error)throw Error('관리자 권한을 확인하지 못했습니다. 잠시 후 다시 시도하세요.');if(!data?.owner_id)throw Error('ADMIN_REQUIRED');return {db,user,ownerId:String(data.owner_id)}}
+export function apiError(error:unknown){const message=error instanceof Error?error.message:'처리하지 못했습니다. 다시 시도하세요.';const status=message==='UNAUTHORIZED'?401:message==='ADMIN_REQUIRED'?403:400;return Response.json({error:status===401?'로그인이 필요합니다.':status===403?'초대된 관리자만 공동 재무자료에 접근할 수 있습니다.':message},{status,headers:{'Cache-Control':'no-store'}})}
+export function assertSameOrigin(request:Request){const origin=request.headers.get('origin');if(origin&&new URL(origin).origin!==new URL(request.url).origin)throw Error('허용되지 않은 요청입니다.');}

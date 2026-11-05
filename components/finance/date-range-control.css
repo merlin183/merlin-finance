@@ -1,0 +1,34 @@
+.finance-range-trigger{height:auto;min-height:48px;max-width:100%;justify-content:flex-start;gap:11px;padding:9px 12px;border-color:color-mix(in srgb,var(--primary) 18%,var(--border));background:var(--card);color:var(--foreground);text-align:left;box-shadow:0 1px 3px #19273e05}
+.finance-range-trigger>svg:first-child{color:var(--primary)}
+.finance-range-trigger>svg:last-child{margin-left:auto;color:var(--muted-foreground)}
+.finance-range-trigger-copy{display:flex;min-width:0;flex-direction:column;gap:3px}
+.finance-range-trigger-label{font-size:11px;line-height:1.3;color:var(--muted-foreground);font-weight:500}
+.finance-range-trigger-value{font-size:13px;line-height:1.4;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.finance-range-trigger-compact{min-height:42px;padding:7px 10px;gap:8px}
+.finance-range-trigger-compact .finance-range-trigger-value{font-size:12px}
+.finance-range-popover{width:340px;max-width:calc(100vw - 24px);max-height:var(--radix-popover-content-available-height);overflow-y:auto;overscroll-behavior:contain;border:1px solid color-mix(in srgb,var(--primary) 14%,var(--border));border-radius:14px;padding:18px;background:var(--popover);color:var(--foreground);box-shadow:0 16px 48px #13274824}
+.finance-range-heading{display:flex;align-items:center;gap:8px;color:var(--primary)}
+.finance-range-heading h3{font-size:15px;font-weight:650;letter-spacing:-.03em;color:var(--foreground)}
+.finance-range-help{font-size:12px;line-height:1.6;color:var(--muted-foreground);margin:7px 0 14px}
+.finance-range-presets{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px}
+.finance-range-presets button{font-size:11px;height:29px;padding:0 8px;box-shadow:none}
+.finance-range-fields{display:grid;grid-template-columns:minmax(0,1fr) 12px minmax(0,1fr);gap:6px;align-items:end}
+.finance-range-fields label{display:flex;min-width:0;flex-direction:column;gap:7px}
+.finance-range-fields label>span{font-size:12px;font-weight:600;color:var(--muted-foreground)}
+.finance-range-fields input{height:37px;padding:6px 7px;max-width:100%;font-size:12px;font-variant-numeric:tabular-nums;border-color:var(--border);background:var(--card);color:var(--foreground)}
+.finance-range-fields input::-webkit-calendar-picker-indicator{width:14px;margin:0;padding:0;opacity:.55}
+.finance-range-separator{height:37px;display:grid;place-items:center;color:var(--muted-foreground)}
+.finance-range-calendar{width:100%;padding:18px 0 10px;--cell-size:34px}
+.finance-range-calendar .rdp-months{width:100%;max-width:none}
+.finance-range-calendar .rdp-day{min-width:0}
+.finance-range-calendar .rdp-day button{min-width:0;height:34px;font-size:12px}
+.finance-range-calendar .rdp-range_middle,.finance-range-calendar .rdp-day button[data-range-middle=true]{background:color-mix(in srgb,var(--primary) 9%,var(--card));color:var(--primary)}
+.finance-range-calendar .rdp-dropdown_root{border-color:var(--border);box-shadow:none}
+.finance-range-calendar .rdp-caption_label{font-size:13px}
+.finance-range-calendar .rdp-dropdown{cursor:pointer}
+.finance-range-calendar .rdp-button_previous,.finance-range-calendar .rdp-button_next{color:var(--muted-foreground)}
+.finance-range-status{border-radius:7px;background:color-mix(in srgb,var(--primary) 6%,var(--card));color:var(--primary);padding:9px 10px;font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums;text-align:center}
+.finance-range-error{background:color-mix(in srgb,var(--destructive) 6%,var(--card));color:var(--destructive)}
+.finance-range-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.finance-range-actions button{min-width:74px;font-size:13px}
+@media(max-width:390px){.finance-range-popover{padding:15px}.finance-range-trigger{gap:8px}.finance-range-trigger-value{font-size:12px}.finance-range-fields input{padding:6px 5px;font-size:11px}.finance-range-calendar{--cell-size:32px}.finance-range-calendar .rdp-day button{height:32px}}

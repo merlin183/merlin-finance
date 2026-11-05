@@ -1,0 +1,153 @@
+.funding-timeline{padding:0 22px 20px;min-width:0;font-variant-numeric:tabular-nums}
+.funding-timeline-day[data-tax-due=true],.funding-timeline-day[data-tax-due=true].selected{border:2px solid #b52736!important;background:color-mix(in srgb,#e45c68 7%,var(--card))!important}
+.funding-timeline-tax-item{border-left:3px solid #b52736;padding-left:10px!important;background:color-mix(in srgb,#e45c68 5%,var(--card))}
+.funding-timeline-tax-dialog{width:min(600px,calc(100vw - 32px))!important;max-width:600px!important;max-height:85dvh;overflow:auto;font-variant-numeric:tabular-nums}
+.funding-timeline-tax-dialog-total{padding:12px 14px;background:color-mix(in srgb,#e45c68 6%,var(--card));border:1px solid color-mix(in srgb,#b52736 30%,var(--border));border-radius:6px;font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.funding-timeline-tax-dialog-total strong{font-size:22px;letter-spacing:-.035em;color:var(--destructive)}
+.funding-timeline-tax-dialog-list{display:grid;gap:10px}.funding-timeline-tax-dialog-list li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-left:3px solid #b52736;border-radius:6px}
+.funding-timeline-tax-dialog-list strong{font-size:13px;font-weight:650}.funding-timeline-tax-dialog-list p{font-size:12px;margin-top:4px}.funding-timeline-tax-dialog-list small{font-size:10px;color:var(--muted-foreground);margin-top:4px;display:block}.funding-timeline-tax-dialog-list b{font-size:18px;color:var(--destructive);white-space:nowrap}
+.funding-timeline-tax-dialog-note{font-size:11px;color:var(--muted-foreground);line-height:1.7}
+@media(max-width:600px){.funding-timeline-tax-dialog-list li{flex-wrap:wrap}.funding-timeline-tax-dialog-total strong{font-size:18px}}
+.funding-timeline-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:4px 0 16px}
+.funding-timeline h3{font-size:14px;font-weight:650;line-height:1.6}
+.funding-timeline h4{font-size:12px;font-weight:600;line-height:1.6}
+.funding-timeline-heading p,.funding-timeline-dates>p{font-size:11px;color:var(--muted-foreground);line-height:1.7;margin-top:3px}
+.funding-timeline-heading label{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted-foreground)}
+.funding-timeline-heading input{height:35px;border:1px solid var(--border);border-radius:6px;padding:6px 9px;background:var(--card);color:var(--foreground);font-size:12px}
+.funding-timeline-date-field{display:grid;grid-template-columns:auto 1fr;gap:3px 8px;align-items:center;max-width:100%}
+.funding-timeline-date-field>div{display:flex;gap:5px;min-width:0}
+.funding-timeline-date-field button{height:35px;padding:6px 10px;white-space:nowrap;border:1px solid var(--border);border-radius:5px;background:var(--muted);font-size:11px;cursor:pointer}
+.funding-timeline-date-field>p{grid-column:2;font-size:10px;line-height:1.6;color:var(--muted-foreground);max-width:250px}
+.funding-timeline-date-field>p.error{color:var(--destructive)}
+.funding-timeline-date-field>p:empty{display:none}
+.funding-timeline-date-field input[aria-invalid=true]{border-color:var(--destructive)}
+.funding-timeline button:focus-visible,.funding-timeline input:focus-visible,.funding-timeline summary:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.funding-timeline-calendar-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+.funding-timeline-calendar-wrap{border:1px solid var(--border);border-radius:8px;padding:13px;min-width:0}
+.funding-timeline-calendar-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin;padding:2px}
+.funding-timeline-calendar-scroll:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.funding-timeline-month{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.funding-timeline-month h4{font-size:14px}
+.funding-timeline-month>div{display:flex;gap:3px}
+.funding-timeline-month button{padding:4px;border-radius:4px;cursor:pointer;background:var(--muted)}
+.funding-timeline button:disabled{opacity:.35;cursor:default}
+.funding-timeline-month>span{margin-left:auto;font-size:10px;color:var(--muted-foreground)}
+.funding-timeline-calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;min-width:840px}
+.funding-timeline-weekday{font-size:10px;text-align:center;color:var(--muted-foreground);padding-bottom:5px}
+.funding-timeline-weekday.sunday{color:var(--destructive)}
+.funding-timeline-day{display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:9px 7px;min-height:112px;border:1px solid var(--border);border-radius:5px;background:var(--card);font-size:11px;text-align:left;cursor:pointer}
+.funding-timeline-day-number{font-size:11px;line-height:1.3;color:var(--muted-foreground)}
+.funding-timeline-day .funding-timeline-day-total{font-size:clamp(12px,1.1vw,15px);font-weight:650;line-height:1.4;letter-spacing:-.025em;white-space:nowrap;font-variant-numeric:tabular-nums}
+.funding-timeline-day.has-expenses{background:color-mix(in srgb,var(--primary) 3%,var(--card))}
+.funding-timeline-day-businesses{display:grid;gap:7px;border-top:1px solid var(--border);padding-top:7px}
+.funding-timeline-day-businesses:empty{display:none}
+.funding-timeline-day-business{display:grid;gap:2px}
+.funding-timeline-business-name{display:flex;align-items:flex-start;gap:5px;min-width:0;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+.funding-timeline-business-name i,.funding-timeline-date-businesses i{display:inline-block;width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.funding-timeline-business-amount{font-size:12px;line-height:1.4;text-align:right;white-space:nowrap}
+.funding-timeline-day:not(:disabled):hover{border-color:var(--border);background:var(--muted)}
+.funding-timeline-day.selected{border-color:var(--primary)!important;background:color-mix(in srgb,var(--primary) 7%,var(--card))!important}
+.funding-timeline-day.selected .funding-timeline-day-number{font-weight:700;color:var(--primary)}
+.funding-timeline-shortcuts{display:flex;align-items:center;gap:6px;padding-top:10px;margin-top:7px;border-top:1px solid var(--border);font-size:11px}
+.funding-timeline-shortcuts>span{color:var(--muted-foreground);margin-right:3px}
+.funding-timeline-shortcuts button{padding:4px 9px;border:1px solid var(--border);border-radius:4px;cursor:pointer}
+.funding-timeline-shortcuts button[aria-pressed=true]{color:var(--primary);border-color:var(--primary)}
+.funding-timeline-dates{min-width:0;display:flex;flex-direction:column}
+.funding-timeline-dates>summary{width:fit-content;cursor:pointer;font-size:11px;font-weight:600;color:var(--foreground)}
+.funding-timeline-dates>summary>span{margin-left:6px;color:var(--muted-foreground);font-weight:400}
+.funding-timeline-dates:not([open])>.funding-timeline-dates-scroll{display:none}
+.funding-timeline-dates-scroll{overflow:auto;max-height:245px;border:1px solid var(--border);border-radius:7px;margin-top:10px}
+.funding-timeline-dates table{min-width:620px}
+.funding-timeline-date-total{font-weight:650}
+.funding-timeline-date-businesses{display:flex;justify-content:flex-end;gap:5px 16px;flex-wrap:wrap}
+.funding-timeline-date-businesses>span{display:flex;align-items:baseline;gap:5px;font-size:11px;line-height:1.6}
+.funding-timeline-date-businesses strong{font-weight:550;white-space:nowrap}
+.funding-timeline-dates-scroll:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.funding-timeline table{width:100%;border-collapse:collapse;font-size:11px}
+.funding-timeline table th,.funding-timeline table td{padding:9px 10px!important;text-align:right;vertical-align:middle;line-height:1.55;border-bottom:1px solid var(--border);white-space:nowrap}
+.funding-timeline table th:first-child,.funding-timeline table td:first-child{text-align:left}
+.funding-timeline table thead th{position:sticky;top:0;font-size:10px;font-weight:550;background:var(--muted);z-index:1}
+.funding-timeline table small{display:block;margin-top:2px;font-size:10px;font-weight:400;line-height:1.5}
+.funding-timeline table small:not(.positive){color:var(--muted-foreground)}
+.funding-timeline-dates tr.selected{background:color-mix(in srgb,var(--primary) 6%,var(--card))}
+.funding-timeline-dates tbody th{font-weight:550}
+.funding-timeline-dates tbody button{cursor:pointer;color:var(--primary);padding:3px 0;border-radius:3px}
+.funding-timeline-notice{padding:10px 12px;margin:12px 0 0;border:1px solid #ead8b3;border-radius:6px;background:color-mix(in srgb,#fff3d9 30%,var(--card));font-size:11px;line-height:1.8;color:#916420}
+.funding-timeline-notice strong{font-weight:600}
+.funding-timeline-kpis{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.funding-timeline-kpi{padding:13px 14px;background:var(--muted);border:1px solid var(--border);border-radius:7px;min-width:0}
+.funding-timeline-kpi>span{font-size:11px;line-height:1.6;color:var(--muted-foreground)}
+.funding-timeline-kpi>strong{display:block;font-size:23px;line-height:1.5;font-weight:700;letter-spacing:-.025em;white-space:nowrap;overflow-x:auto;margin-top:3px}
+.funding-timeline-kpi>p,.funding-timeline-kpi>small{font-size:10px;line-height:1.7;color:var(--muted-foreground);margin-top:4px}
+.funding-timeline-kpi>small{display:block}
+.funding-timeline-funding{margin-top:22px;padding-top:17px;border-top:1px solid var(--border)}
+.funding-timeline-funding>header{margin-bottom:10px}
+.funding-timeline-funding>header p{font-size:11px;line-height:1.7;color:var(--muted-foreground);margin-top:3px}
+.funding-timeline-calculation-note{font-size:11px;line-height:1.8;color:var(--muted-foreground);margin:10px 0 14px}
+.funding-timeline-calculation-note>summary{cursor:pointer;width:fit-content}
+.funding-timeline-calculation-note>p{margin-top:5px;max-width:850px}
+.funding-timeline-item-group i{display:inline-block;width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.funding-timeline-evidence{margin-top:17px}
+.funding-timeline-evidence>h4{margin-bottom:8px}
+.funding-timeline-item-groups{display:grid;gap:7px}
+.funding-timeline-item-group{border:1px solid var(--border);border-radius:6px;font-size:11px;overflow:hidden}
+.funding-timeline-item-group>summary{padding:10px 12px;cursor:pointer;line-height:1.7;background:var(--muted)}
+.funding-timeline-item-group>summary>span{margin-left:4px}
+.funding-timeline-item-group>summary i{margin-right:5px}
+.funding-timeline-item-group>summary strong{margin-left:14px;white-space:nowrap;font-weight:600}
+.funding-timeline-item-group ul{margin:0;padding:0;list-style:none}
+.funding-timeline-item-group li{padding:10px 13px;display:flex;justify-content:space-between;gap:12px;line-height:1.6;border-top:1px solid var(--border)}
+.funding-timeline-item-group li>strong{white-space:nowrap;font-weight:550}
+.funding-timeline-item-group li small{display:block;font-size:10px;color:var(--muted-foreground);margin-top:3px}
+.funding-timeline-item-group.unassigned{margin-top:8px;border-color:#ead8b3}
+.funding-timeline-empty{font-size:12px;line-height:1.7;color:var(--muted-foreground);padding:14px 10px}
+.funding-timeline-amounts{display:grid;gap:3px;min-width:0;font-variant-numeric:tabular-nums}
+.funding-timeline-expense-line{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:1px 5px;line-height:1.5}
+.funding-timeline-expense-line>span{margin-right:auto;font-size:9px;font-weight:500;letter-spacing:0;white-space:nowrap}
+.funding-timeline-expense-line>strong{font-size:inherit;font-weight:650;white-space:nowrap}
+.funding-timeline-planned-badge{display:inline-block;padding:0 4px;border:1px solid color-mix(in srgb,currentColor 35%,transparent);border-radius:3px;font-size:9px;font-weight:500;line-height:1.5;vertical-align:middle;white-space:nowrap}
+.funding-timeline-zero{color:var(--foreground);font-weight:550}
+.funding-timeline-day-total .funding-timeline-zero{text-align:left}
+.funding-timeline-date-total>.funding-timeline-amounts{min-width:135px}
+.funding-timeline-date-businesses>span{display:grid;gap:4px;min-width:145px;align-items:start}
+.funding-timeline-date-businesses .funding-timeline-business-name{align-items:center;justify-content:flex-end}
+.funding-timeline-date-businesses .funding-timeline-business-name i{margin-top:0}
+.funding-timeline-date-businesses .funding-timeline-expense-line>strong{font-weight:550}
+.funding-timeline-evidence>header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:7px}
+.funding-timeline-evidence>header button{font-size:11px;color:var(--primary);border:1px solid var(--border);border-radius:4px;padding:5px 9px;cursor:pointer}
+.funding-timeline-detail-note{font-size:11px;line-height:1.75;color:var(--muted-foreground)}
+.funding-timeline-funding-evidence{margin-top:10px}
+.funding-timeline-funding-evidence>summary{font-size:11px;color:var(--muted-foreground);cursor:pointer;width:fit-content;margin-bottom:8px}
+.funding-timeline-detail-dialog{width:min(720px,calc(100vw - 32px))!important;max-width:720px!important;gap:18px}
+.funding-timeline-detail-totals{padding:12px 14px;background:var(--muted);border:1px solid var(--border);border-radius:6px;gap:7px}
+.funding-timeline-detail-totals .funding-timeline-expense-line>span{font-size:11px}
+.funding-timeline-detail-totals .funding-timeline-expense-line>strong{font-size:20px;letter-spacing:-.025em}
+.funding-timeline-detail-section{min-width:0}
+.funding-timeline-detail-section>h4{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;font-weight:650;margin-bottom:8px}
+.funding-timeline-detail-section>h4>strong{white-space:nowrap}
+.funding-timeline-detail-items{list-style:none;padding:0;margin:0;border-top:1px solid var(--border)}
+.funding-timeline-detail-items>li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);line-height:1.6}
+.funding-timeline-detail-items>li>div{min-width:0;overflow-wrap:anywhere}
+.funding-timeline-detail-items p{font-size:12px;font-weight:550;margin-top:3px}
+.funding-timeline-detail-items small{font-size:10px;color:var(--muted-foreground);display:block;margin-top:3px;white-space:pre-line;line-height:1.7}
+.funding-timeline-detail-items>li>strong{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:650;white-space:nowrap}
+.funding-timeline-detail-business{font-size:10px;color:var(--muted-foreground)}
+.funding-timeline-detail-business i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px}
+.funding-timeline-detail-section .funding-timeline-tax-dialog-list{padding:0;margin:10px 0;list-style:none}
+.funding-timeline-detail-section.confirmed .funding-timeline-detail-note{margin-bottom:7px}
+.funding-timeline-income-amounts{display:grid;gap:5px;margin-top:3px;font-variant-numeric:tabular-nums;min-width:0}
+.funding-timeline-day .funding-timeline-income-amounts.toss-calendar-income{display:grid;margin-top:3px}
+.funding-timeline-income-line{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:1px 5px;line-height:1.5}
+.funding-timeline-income-line>span{font-size:9px;font-weight:500;white-space:normal;overflow-wrap:anywhere;text-align:left}
+.funding-timeline-income-line>span>small{display:block;font-size:9px;font-weight:400;opacity:.8;margin:0}
+.funding-timeline-income-line>strong{margin-left:auto;font-size:11px;font-weight:650;white-space:nowrap}
+.funding-timeline-income-original-label{font-size:9px;font-weight:400;color:var(--muted-foreground)}
+.funding-timeline-selected-income{display:grid;gap:8px;padding:12px 14px;border:1px solid var(--border);background:var(--muted);border-radius:7px;margin-top:14px}
+.funding-timeline-selected-income>button{font-size:11px;color:var(--primary);cursor:pointer;justify-self:start;text-decoration:underline;text-underline-offset:3px}
+.funding-timeline-selected-income>.funding-timeline-income-amounts{max-width:390px}
+.funding-timeline-selected-income .funding-timeline-income-line>span{font-size:11px}
+.funding-timeline-selected-income .funding-timeline-income-line>strong{font-size:14px}
+.funding-timeline-income-details>.funding-timeline-detail-note{margin-bottom:10px}
+@media(max-width:850px){.funding-timeline-dates-scroll{max-height:205px}.funding-timeline-kpi>strong{font-size:21px}}
+@media(max-width:600px){.funding-timeline{padding-left:16px;padding-right:16px}.funding-timeline-heading{align-items:flex-start}.funding-timeline-heading label{width:100%;justify-content:space-between}.funding-timeline-calendar-wrap{padding:10px 7px}.funding-timeline-month{padding:0 4px;flex-wrap:wrap}.funding-timeline-month>span{font-size:10px}.funding-timeline-kpis{grid-template-columns:minmax(0,1fr);gap:7px}.funding-timeline-kpi{padding:12px}.funding-timeline-kpi>strong{font-size:21px}.funding-timeline-item-group li{padding:9px}}
+@media(max-width:600px){.funding-timeline-detail-items>li{gap:7px;grid-template-columns:minmax(0,1fr)}.funding-timeline-detail-items>li>strong{justify-content:flex-end}.funding-timeline-detail-totals .funding-timeline-expense-line>strong{font-size:18px}}

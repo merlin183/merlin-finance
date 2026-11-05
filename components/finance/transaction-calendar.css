@@ -1,0 +1,108 @@
+.transaction-view-switch{display:flex;gap:4px;padding:3px;border:1px solid var(--border);border-radius:9px;background:var(--muted)}
+.transaction-view-switch button{font-size:13px}
+.transaction-summary-actions{display:flex;align-items:center;gap:14px}
+.transaction-calendar{padding:6px 24px 22px;container-type:inline-size}
+.transaction-calendar-heading{display:flex;justify-content:space-between;align-items:center;gap:18px;min-width:0}
+.transaction-calendar-month-heading{display:flex;align-items:center;gap:22px;min-width:0}
+.transaction-calendar .transaction-calendar-heading h2{font-size:24px;font-weight:650;letter-spacing:-.6px;white-space:nowrap;color:var(--foreground)}
+.transaction-calendar-heading>input{width:150px;flex-shrink:0;font-size:13px;font-variant-numeric:tabular-nums}
+.transaction-calendar-navigation{display:flex;align-items:center;gap:7px}
+.transaction-calendar-navigation button{width:25px;height:25px;border-radius:6px;background:var(--muted);color:var(--muted-foreground)}
+.transaction-calendar-navigation button:hover{background:var(--accent);color:var(--foreground)}
+.transaction-calendar-scope{display:flex;align-items:center;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;margin-top:9px;min-height:20px;color:var(--muted-foreground);font-size:12px;line-height:1.6}
+.transaction-calendar-scope button{height:23px;font-size:11px;color:#3564b5;padding:0 7px}
+.transaction-calendar-totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:17px 0 0;padding-bottom:18px;border-bottom:1px solid var(--border)}
+.transaction-calendar-totals>div{padding:0 24px;border-left:1px solid var(--border);min-width:0}
+.transaction-calendar-totals>div:first-child{padding-left:0;border-left:0}
+.transaction-calendar-totals dt{font-size:13px;color:var(--muted-foreground);margin-bottom:8px;font-weight:500}
+.transaction-calendar-totals dd{font-size:21px;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;line-height:1.4;letter-spacing:-.3px}
+.transaction-calendar-expense{color:#ca3c49}
+.transaction-calendar-income{color:#078768}
+.transaction-calendar-legend{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:15px 0 11px;color:var(--muted-foreground);font-size:12px}
+.transaction-calendar-legend>div{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.transaction-calendar-legend>div>span{display:inline-flex;align-items:center;gap:7px}
+.transaction-calendar-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;background:#bdc3cd}
+.transaction-calendar-legend .transaction-calendar-expense-dot{background:#ca3c49}
+.transaction-calendar-legend .transaction-calendar-income-dot{background:#078768}
+.transaction-calendar-business-legend{display:flex;flex-wrap:wrap;gap:7px 18px;margin:0 0 12px;color:var(--muted-foreground);font-size:11px;line-height:1.5}
+.transaction-calendar-business-legend>span{display:inline-flex;align-items:center;gap:6px;min-width:0}
+.transaction-calendar-business-legend i,.transaction-calendar-business-label i,.transaction-calendar-business-group-heading i{display:inline-block;width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.transaction-calendar-day-businesses{display:flex;flex-direction:column;gap:5px;margin-top:6px;min-width:0}
+.transaction-calendar-day-business{display:block;min-width:0}
+.transaction-calendar-business-label{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;line-height:14px;color:var(--muted-foreground);font-weight:550}
+.transaction-calendar-business-label i{width:5px;height:5px;margin-right:4px;vertical-align:1px}
+.transaction-calendar-day-business .transaction-calendar-day-totals{margin-top:1px}
+
+.transaction-calendar-business-more{font-size:9px;color:var(--muted-foreground);line-height:13px;margin-top:3px}
+.transaction-calendar-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;padding-bottom:5px}
+.transaction-calendar-scroll:focus-visible{outline:2px solid var(--ring);outline-offset:3px;border-radius:5px}
+.transaction-calendar-scroll-content{width:100%}
+.transaction-calendar-weekdays,.transaction-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));width:100%}
+.transaction-calendar-weekdays>div{padding:6px 12px 10px;font-size:12px;color:var(--muted-foreground);font-weight:400}
+.transaction-calendar-day,.transaction-calendar-adjacent{min-width:0;min-height:94px;padding:6px 12px;text-align:left;border:0;border-radius:7px;background:transparent}
+.transaction-calendar-day{display:flex;flex-direction:column;align-items:stretch;cursor:pointer;position:relative;color:var(--foreground);transition:background-color .12s}
+.transaction-calendar-day:hover{background:var(--muted)}
+.transaction-calendar-day:focus-visible{outline:2px solid var(--ring);outline-offset:-2px;z-index:1}
+.transaction-calendar-day[aria-expanded=true]{background:var(--muted)}
+.transaction-calendar-day-heading{display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;font-weight:400}
+.transaction-calendar-day-heading>span{font-size:9px;font-weight:600;line-height:16px;padding:0 4px;border-radius:9px;background:#fff0f2;color:#d34856}
+.transaction-calendar-day.is-weekend time{color:#d34856}
+.transaction-calendar-day-totals{display:flex;flex-direction:column;margin-top:8px;font-size:13px;line-height:20px;font-weight:400;font-variant-numeric:tabular-nums;letter-spacing:-.15px;min-width:0}
+.transaction-calendar-exact-amount{display:block;white-space:nowrap}
+
+.transaction-calendar-detail-link{display:block;margin-top:2px;color:#8b98aa;font-size:10px;line-height:14px;white-space:nowrap}
+.transaction-calendar-day:hover .transaction-calendar-detail-link,.transaction-calendar-day:focus-visible .transaction-calendar-detail-link{color:#3564b5;text-decoration:underline;text-underline-offset:2px}
+.transaction-calendar-adjacent{color:#b5becb;font-size:13px;line-height:18px}
+.transaction-calendar-adjacent.is-weekend{color:#ebbac1}
+.transaction-calendar-day.is-outside{color:#b5becb;cursor:default}
+.transaction-calendar-day.is-outside:hover{background:transparent}
+.transaction-calendar-day.is-outside.is-weekend time{color:#ebbac1}
+.transaction-calendar-outside-label{font-size:10px;line-height:16px;color:#b5becb;margin-top:13px;word-break:keep-all}
+.transaction-calendar-help{font-size:11px;color:var(--muted-foreground);line-height:1.7;margin-top:12px}
+
+.transaction-calendar-dialog{width:780px;max-width:calc(100vw - 32px)!important;max-height:min(84vh,850px);grid-template-rows:auto minmax(0,1fr) auto;gap:15px!important;padding:24px!important}
+.transaction-calendar-dialog-close{position:absolute;right:16px;top:16px}
+.transaction-calendar-dialog [data-slot=dialog-header]{padding-right:24px;text-align:left}
+.transaction-calendar-dialog [data-slot=dialog-title]{line-height:1.5}
+.transaction-calendar-dialog [data-slot=dialog-description]{font-size:13px;font-variant-numeric:tabular-nums;line-height:1.8}
+.transaction-calendar-dialog-body{overflow-y:auto;min-height:0;overscroll-behavior:contain;padding-right:5px}
+.transaction-calendar-dialog-help{font-size:11px;color:var(--muted-foreground);padding-top:12px;border-top:1px solid var(--border)}
+.transaction-calendar-business-group+.transaction-calendar-business-group{margin-top:28px}
+.transaction-calendar-business-group-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:0 0 13px;margin-bottom:15px;border-bottom:1px solid var(--border)}
+.transaction-calendar-business-group-heading h3{display:flex;align-items:center;flex-wrap:wrap;gap:7px;font-size:15px;font-weight:650;line-height:1.5;color:var(--foreground)}
+.transaction-calendar-business-group-heading h3 small{font-size:11px;font-weight:400;color:var(--muted-foreground)}
+.transaction-calendar-business-group-heading p{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:flex-end;font-size:12px;line-height:1.8;font-variant-numeric:tabular-nums}
+.transaction-calendar-transactions{list-style:none;padding:0;margin:0}
+.transaction-calendar-transaction{padding:19px 0;border-bottom:1px solid var(--border);content-visibility:auto;contain-intrinsic-size:auto 160px}
+.transaction-calendar-transaction:first-child{padding-top:0}
+.transaction-calendar-transaction:last-child{border-bottom:0;padding-bottom:0}
+.transaction-calendar-transaction-main{display:flex;justify-content:space-between;gap:24px}
+.transaction-calendar-transaction-main>div:first-child{min-width:0;flex:1}
+.transaction-calendar-transaction-context{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:12px;color:var(--muted-foreground);margin-bottom:7px}
+.transaction-calendar-transaction-context>span:first-child{font-weight:600;color:var(--foreground)}
+.transaction-calendar-transaction-title{display:block;font-size:15px;font-weight:650;overflow-wrap:anywhere}
+.transaction-calendar-description{font-size:13px;color:var(--muted-foreground);line-height:1.6;margin-top:5px;overflow-wrap:anywhere}
+.transaction-calendar-category{display:inline-block;font-size:11px;background:var(--muted);color:var(--foreground);border-radius:4px;padding:3px 7px;margin-top:8px}
+.transaction-calendar-amount{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;font-size:12px;font-variant-numeric:tabular-nums}
+.transaction-calendar-amount strong{font-size:18px;font-weight:700}
+.transaction-calendar-amount small{font-size:11px;color:var(--muted-foreground);margin-top:4px}
+.transaction-calendar-source{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 24px;background:var(--muted);border-radius:7px;margin-top:12px;padding:12px 14px;font-size:12px;line-height:1.65}
+.transaction-calendar-source>div{display:grid;grid-template-columns:80px minmax(0,1fr);gap:8px}
+.transaction-calendar-source dt{color:var(--muted-foreground)}
+.transaction-calendar-source dd{overflow-wrap:anywhere;color:var(--foreground)}
+.transaction-calendar-origin{display:block;font-size:11px;color:var(--muted-foreground);margin-top:8px}
+.transaction-calendar-empty{padding:32px 12px;text-align:center;font-size:14px;color:var(--muted-foreground)}
+.dark .transaction-calendar-expense{color:#f39393}
+.dark .transaction-calendar-income{color:#62d3b5}
+.dark .transaction-calendar-day-heading>span{background:#492b36;color:#f39393}
+.dark .transaction-calendar-day.is-weekend time{color:#f39393}
+.dark .transaction-calendar-day.is-outside.is-weekend time,.dark .transaction-calendar-adjacent.is-weekend{color:#79555d}
+.dark .transaction-calendar-adjacent,.dark .transaction-calendar-day.is-outside,.dark .transaction-calendar-outside-label{color:#657084}
+@container(max-width:760px){.transaction-calendar-month-heading{gap:12px}.transaction-calendar .transaction-calendar-heading h2{font-size:21px}.transaction-calendar-totals>div{padding-left:15px;padding-right:15px}.transaction-calendar-totals dd{font-size:18px}.transaction-calendar-weekdays>div,.transaction-calendar-day,.transaction-calendar-adjacent{padding-left:6px;padding-right:6px}.transaction-calendar-detail-link>span{display:none}}
+@container(max-width:620px){.transaction-calendar-totals{margin-top:20px;padding-bottom:20px}.transaction-calendar-totals dt{font-size:11px}.transaction-calendar-totals dd{font-size:16px}.transaction-calendar-legend{margin:18px 0 13px}.transaction-calendar-legend>div{gap:12px}.transaction-calendar-legend{font-size:11px}.transaction-calendar-day,.transaction-calendar-adjacent{min-height:97px}.transaction-calendar-outside-label{font-size:9px}}
+@container(max-width:420px){.transaction-calendar-heading{gap:9px}.transaction-calendar-month-heading{gap:9px}.transaction-calendar .transaction-calendar-heading h2{font-size:18px;letter-spacing:-.7px}.transaction-calendar-heading>input{width:114px;font-size:11px;padding-left:6px;padding-right:6px}.transaction-calendar-navigation{gap:3px}.transaction-calendar-navigation button{width:21px;height:23px}.transaction-calendar-totals>div{padding-left:9px;padding-right:9px}.transaction-calendar-totals dd{font-size:14px;letter-spacing:-.4px}.transaction-calendar-totals dt{font-size:10px}.transaction-calendar-scope{font-size:10px}.transaction-calendar-weekdays>div{font-size:10px}.transaction-calendar-day,.transaction-calendar-adjacent{padding-left:3px;padding-right:3px}.transaction-calendar-day-heading,.transaction-calendar-adjacent{font-size:11px}.transaction-calendar-day-heading{gap:3px;flex-wrap:wrap}.transaction-calendar-day-heading>span{font-size:8px;padding:0 3px}.transaction-calendar-detail-link{font-size:9px}.transaction-calendar-outside-label{font-size:8px}}
+@media(max-width:600px){.transaction-calendar{padding:3px 14px 18px}.transaction-summary-actions{gap:7px}.transaction-view-switch button{padding-left:9px;padding-right:9px}.transaction-calendar-dialog{padding:20px!important;max-height:86vh}.transaction-calendar-source{grid-template-columns:1fr;padding:10px}.transaction-calendar-source>div{grid-template-columns:72px minmax(0,1fr)}.transaction-calendar-transaction-main{flex-wrap:wrap;gap:12px}.transaction-calendar-transaction-main>div:first-child{flex-basis:100%}.transaction-calendar-amount{align-items:flex-start}.transaction-calendar-amount strong{font-size:18px}.transaction-calendar-amount small{margin-top:0}}
+@container(max-width:760px){.transaction-calendar-business-label{font-size:9px}}
+@container(max-width:620px){.transaction-calendar-business-legend{gap:5px 11px;font-size:10px}.transaction-calendar-business-label{line-height:12px}}
+@container(max-width:420px){.transaction-calendar-business-label{font-size:8px}.transaction-calendar-business-label i{width:4px;height:4px;margin-right:2px}.transaction-calendar-business-more{font-size:8px}}
+@media(max-width:600px){.transaction-calendar-business-group-heading{flex-direction:column;gap:5px}.transaction-calendar-business-group-heading p{justify-content:flex-start;font-size:11px}.transaction-calendar-business-group-heading h3{font-size:14px}}

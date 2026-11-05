@@ -1,0 +1,69 @@
+.account-funding-panel .panel-head{padding-bottom:13px}
+.account-funding-panel .panel-head p{font-size:12px}
+.account-funding-tabs{gap:0!important}
+.account-funding-panel .account-funding-tabbar{display:flex;justify-content:flex-start;max-width:100%;height:auto;min-height:38px;overflow-x:auto;overscroll-behavior-inline:contain;gap:4px;border-radius:0;padding:0 22px 8px;background:transparent;scrollbar-width:thin}
+.account-funding-panel .account-funding-tabbar [role=tab]{flex:none;min-height:31px;height:auto;padding:6px 11px;border:1px solid var(--border);border-radius:6px;font-size:12px;line-height:1.4;white-space:nowrap;background:var(--card);box-shadow:none}
+.account-funding-panel .account-funding-tabbar [role=tab][data-state=active]{border-color:color-mix(in srgb,var(--primary) 30%,var(--border));background:color-mix(in srgb,var(--primary) 8%,var(--card));color:var(--primary)}
+.account-funding-panel .account-funding-account-tabs{padding-top:2px;padding-bottom:12px}
+.account-funding-panel .account-funding-account-tabs [role=tab]{font-size:11px}
+.account-funding-tab-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.account-funding-summary{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;margin:0 22px 14px;padding:13px 16px;border:1px solid var(--border);border-radius:8px;background:color-mix(in srgb,var(--muted) 50%,var(--card))}
+.account-funding-summary>div{display:grid;gap:4px}
+.account-funding-summary span{font-size:12px;color:var(--muted-foreground);line-height:1.5}
+.account-funding-summary strong{font-size:22px;font-weight:700;line-height:1.4;letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+.account-funding-summary small{font-size:11px;color:var(--muted-foreground);line-height:1.6}
+.account-funding-summary-meta{font-size:11px;line-height:1.7;color:var(--muted-foreground)}
+.account-funding-table-scroll{max-width:100%;overflow:auto;overscroll-behavior:contain}
+.account-funding-table-scroll:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.account-funding-panel .account-funding-table{width:100%;min-width:700px;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.account-funding-panel .account-funding-table th,.account-funding-panel .account-funding-table td{padding:10px 14px!important;line-height:1.55;border-bottom:1px solid var(--border);font-size:12px;text-align:right;white-space:nowrap;vertical-align:middle}
+.account-funding-panel .account-funding-table thead th{font-size:11px;font-weight:550;background:var(--muted)}
+.account-funding-panel .account-funding-table th:first-child,.account-funding-panel .account-funding-table td:first-child{text-align:left;padding-left:22px!important}
+.account-funding-panel .account-funding-table th:last-child,.account-funding-panel .account-funding-table td:last-child{padding-right:22px!important}
+.account-funding-panel .account-funding-table small{display:block;margin-top:2px;font-size:10px;font-weight:400;line-height:1.6;color:var(--muted-foreground)}
+.account-funding-panel .account-funding-table tbody th{background:transparent;height:auto;max-width:280px;font-weight:550;color:var(--foreground)}
+.account-funding-account-link{display:flex;align-items:center;gap:6px;text-align:left;color:var(--primary);border-radius:3px;cursor:pointer;white-space:normal;overflow-wrap:anywhere;font-size:12px}
+.account-funding-account-link:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+.account-funding-panel .account-funding-table .account-funding-account-meta{white-space:normal;overflow-wrap:anywhere}
+.account-funding-panel .account-funding-required{font-weight:700;background:color-mix(in srgb,var(--destructive) 4%,var(--card))}
+.account-funding-required.negative{color:var(--destructive)}
+.account-funding-unknown{color:#986818}
+.account-funding-current{margin:0 22px 16px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:color-mix(in srgb,var(--primary) 3%,var(--card))}
+.account-funding-current>header{display:flex;align-items:baseline;gap:8px 16px;flex-wrap:wrap;margin-bottom:9px}
+.account-funding-current h3{font-size:12px;font-weight:650}
+.account-funding-current>header p{font-size:10px;color:var(--muted-foreground);line-height:1.6}
+.account-funding-current-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:10px 16px}
+.account-funding-current-account{display:grid;gap:2px;min-width:0}
+.account-funding-current-account>span{font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+.account-funding-current-account>strong{font-size:17px;font-weight:650;font-variant-numeric:tabular-nums;line-height:1.6;overflow-wrap:anywhere}
+.account-funding-current-account>small{font-size:10px;line-height:1.5;color:var(--muted-foreground);overflow-wrap:anywhere}
+.account-funding-balance-source{font-size:10px;line-height:1.6;color:var(--muted-foreground)}
+.account-funding-balance-source>summary{cursor:pointer;width:fit-content}
+.account-funding-balance-source>p{margin-top:3px;max-width:280px}
+.account-funding-balance-source>summary:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:3px}
+@media(max-width:600px){.account-funding-current{margin:0 16px 14px;padding:11px 12px}.account-funding-current-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}}
+.account-funding-explanation{margin:10px 22px 14px;color:var(--muted-foreground);font-size:11px;line-height:1.7}
+.account-funding-explanation details{margin-top:5px}
+.account-funding-explanation summary{cursor:pointer;width:fit-content;color:var(--foreground)}
+.account-funding-explanation details p{margin-top:5px}
+.account-funding-detail{margin:14px 22px 18px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.account-funding-detail>header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px 16px;padding:12px 15px;background:var(--muted)}
+.account-funding-detail h3{font-size:13px;line-height:1.5;font-weight:600}
+.account-funding-detail>header p{font-size:11px;line-height:1.7;color:var(--muted-foreground);margin-top:3px}
+.account-funding-detail>header strong{font-size:13px;line-height:1.6;font-variant-numeric:tabular-nums}
+.account-funding-item-scroll{max-height:300px;overflow:auto;overscroll-behavior:contain}
+.account-funding-panel .account-funding-items{width:100%;min-width:540px;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.account-funding-panel .account-funding-items th,.account-funding-panel .account-funding-items td{padding:9px 13px!important;font-size:12px;line-height:1.6;text-align:left;border-bottom:1px solid var(--border);white-space:normal;height:auto;overflow-wrap:anywhere;vertical-align:top}
+.account-funding-panel .account-funding-items thead th{position:sticky;top:0;background:var(--muted);font-size:11px;z-index:1}
+.account-funding-panel .account-funding-items th:first-child,.account-funding-panel .account-funding-items td:first-child{width:150px}
+.account-funding-panel .account-funding-items th:last-child,.account-funding-panel .account-funding-items td:last-child{text-align:right;white-space:nowrap;width:120px}
+.account-funding-panel .account-funding-items small{display:block;font-size:10px;color:var(--muted-foreground);margin-top:2px;line-height:1.6}
+.account-funding-item-scroll:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.account-funding-no-items,.account-funding-select-note{padding:14px 22px 18px;font-size:12px;color:var(--muted-foreground);line-height:1.7}
+.account-funding-detail>.account-funding-no-items{padding:13px 15px}
+.account-funding-unassigned{margin:0 22px 14px;border:1px solid #ead8b3;border-radius:7px;overflow:hidden;background:color-mix(in srgb,#fff3d9 35%,var(--card))}
+.account-funding-unassigned>summary{cursor:pointer;padding:11px 14px;font-size:12px;line-height:1.7;font-weight:550;color:#916420}
+.account-funding-unassigned>summary strong{font-variant-numeric:tabular-nums;margin-left:8px}
+.account-funding-unassigned>p{padding:0 14px 12px;font-size:11px;line-height:1.7;color:var(--muted-foreground)}
+.account-funding-unassigned .account-funding-detail{margin:0 12px 12px;background:var(--card)}
+@media(max-width:600px){.account-funding-panel .account-funding-tabbar{padding-left:16px;padding-right:16px}.account-funding-summary{margin:0 16px 12px;padding:12px}.account-funding-summary strong{font-size:20px}.account-funding-explanation{margin-left:16px;margin-right:16px}.account-funding-detail,.account-funding-unassigned{margin-left:12px;margin-right:12px}.account-funding-panel .account-funding-table{min-width:650px}.account-funding-summary-meta{font-size:10px}.account-funding-detail>header{padding:11px 12px}.account-funding-select-note,.account-funding-no-items{padding-left:16px;padding-right:16px}}

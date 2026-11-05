@@ -1,0 +1,353 @@
+.cash-plan-panel .panel-head{align-items:flex-start;gap:18px;flex-wrap:wrap}
+.cash-plan-panel .panel-head>div{min-width:0}
+.cash-plan-panel .panel-head>div:first-child{flex:1 1 260px;min-width:min(100%,260px);max-width:100%}
+.cash-plan-panel .panel-head>.picker{flex-shrink:0}
+.cash-plan-basis{margin:0 26px 22px;color:var(--muted-foreground);font-size:13px;line-height:1.7}
+.cash-plan-businesses{display:grid;gap:20px;padding:0 26px 26px}
+.cash-plan-business{min-width:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--card)}
+.cash-plan-business-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:21px 24px 17px}
+.cash-plan-business-heading h3{display:flex;align-items:center;gap:9px;font-size:17px;font-weight:650;line-height:1.5;min-width:0;overflow-wrap:anywhere}
+.cash-plan-business-heading h3 i{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.cash-plan-status{display:inline-flex;padding:5px 8px;border-radius:5px;background:var(--muted);color:var(--muted-foreground);font-size:11px;line-height:1.5;flex-shrink:0}
+.cash-plan-status.needs-review{background:#fff4de;color:#986818}
+.cash-plan-status.needs-funds{background:#fff0ef;color:#b4423e}
+.cash-plan-equation{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:12px;align-items:center;padding:0 24px 20px}
+.cash-plan-equation>div{min-width:0;padding:14px 0}
+.cash-plan-equation>div>span{display:block;color:var(--muted-foreground);font-size:13px;line-height:1.6}
+.cash-plan-equation strong{display:block;font-size:clamp(19px,2vw,29px);line-height:1.5;letter-spacing:-.04em;font-weight:700;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;margin:6px 0}
+.cash-plan-equation small{display:block;color:var(--muted-foreground);font-size:11px;line-height:1.6}
+
+.cash-plan-equation>.cash-plan-after{background:color-mix(in srgb,var(--primary) 5%,var(--card));border-radius:9px;padding:14px 16px}
+.cash-plan-after strong{color:var(--primary)}
+.cash-plan-after strong.negative{color:var(--destructive)}
+.cash-plan-warning{display:flex;gap:8px;margin:0 24px 16px;padding:12px 14px;border-radius:7px;background:#fff8e9;color:#916420;font-size:12px;line-height:1.7}
+.cash-plan-warning svg{flex-shrink:0;margin-top:2px}
+.cash-plan-empty{font-size:12px;line-height:1.7;color:var(--muted-foreground);margin:0 24px 18px}
+.cash-plan-empty a{color:var(--primary);text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
+.cash-plan-secondary{border-top:1px solid var(--border);padding:18px 24px;background:color-mix(in srgb,var(--muted) 45%,var(--card))}
+.cash-plan-secondary dl{display:flex;flex-wrap:wrap;gap:10px 32px}
+.cash-plan-secondary dl>div{display:flex;align-items:baseline;gap:14px;justify-content:space-between}
+.cash-plan-secondary dt{font-size:12px;color:var(--muted-foreground)}
+.cash-plan-secondary dd{font-size:14px;line-height:1.7;font-weight:550;font-variant-numeric:tabular-nums}
+.cash-plan-secondary .cash-plan-available dt{color:var(--foreground);font-weight:550}
+.cash-plan-secondary .cash-plan-available dd{font-weight:700}
+.cash-plan-secondary>p{color:var(--muted-foreground);font-size:11px;line-height:1.6;margin-top:6px}
+.cash-plan-secondary .cash-plan-income{border-top:1px dashed var(--border);margin-top:14px;padding-top:12px}
+.cash-plan-breakdowns{padding:0 24px}
+.cash-plan-detail+ .cash-plan-detail{border-top:1px solid var(--border)}
+.cash-plan-detail>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 0;cursor:pointer;list-style:none;font-size:13px;font-weight:550;line-height:1.6}
+.cash-plan-detail>summary::-webkit-details-marker{display:none}
+.cash-plan-detail>summary:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:4px}
+.cash-plan-detail>summary small{color:var(--muted-foreground);font-size:11px;font-weight:400;margin-left:7px}
+.cash-plan-detail>summary svg{flex-shrink:0;transition:transform .15s ease}
+.cash-plan-detail[open]>summary svg{transform:rotate(180deg)}
+.cash-plan-detail>.cash-plan-empty{margin:0 0 18px}
+.cash-plan-accounts{list-style:none;display:grid;gap:0;padding:0 0 10px}
+.cash-plan-accounts li{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:14px 0;border-top:1px dashed var(--border)}
+.cash-plan-accounts li>div{min-width:0;display:grid;gap:3px}
+.cash-plan-accounts li strong{font-size:13px;font-weight:550;overflow-wrap:anywhere}
+.cash-plan-accounts li span,.cash-plan-accounts li small{font-size:11px;line-height:1.7;color:var(--muted-foreground);overflow-wrap:anywhere}
+.cash-plan-accounts li p{font-size:11px;line-height:1.7;color:var(--muted-foreground);margin:0;overflow-wrap:anywhere}
+.cash-plan-accounts li>b{flex-shrink:0;font-size:14px;line-height:1.7;font-variant-numeric:tabular-nums;font-weight:600}
+.cash-plan-unknown{color:#986818}
+.cash-plan-current-balance{display:flex;align-items:center;justify-content:space-between;gap:15px 30px;margin:0 24px 15px;padding:13px 16px;border:1px solid var(--border);border-radius:8px;background:color-mix(in srgb,var(--primary) 4%,var(--card))}
+.cash-plan-current-balance>div{display:grid;gap:4px;min-width:0}
+.cash-plan-current-balance span{font-size:12px;color:var(--muted-foreground)}
+.cash-plan-current-balance strong{font-size:23px;font-weight:700;line-height:1.5;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.cash-plan-current-balance small,.cash-plan-current-balance>p{font-size:11px;line-height:1.7;color:var(--muted-foreground)}
+.cash-plan-current-balance>p{max-width:310px}
+.cash-plan-schedule{display:grid;gap:16px;padding:0 0 20px}
+.cash-plan-schedule section{border:1px solid var(--border);border-radius:7px;overflow:hidden}
+.cash-plan-schedule section>header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 14px;background:var(--muted);font-size:12px;line-height:1.7}
+.cash-plan-schedule section>header strong{font-size:13px;font-variant-numeric:tabular-nums}
+.cash-plan-schedule ul{list-style:none}
+.cash-plan-schedule li{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:12px 14px;font-size:13px;line-height:1.6}
+.cash-plan-schedule li+li{border-top:1px solid var(--border)}
+.cash-plan-schedule li>div{min-width:0;overflow-wrap:anywhere}
+.cash-plan-schedule li small{display:inline-block;font-size:10px;color:var(--muted-foreground);margin-left:8px}
+.cash-plan-schedule li>b{flex-shrink:0;font-variant-numeric:tabular-nums;font-weight:550}
+.cash-plan-simulation-note{font-size:11px;color:var(--muted-foreground);line-height:1.7;margin:10px 0 0}
+.cash-plan-controls{display:flex;gap:9px;flex:0 1 auto;max-width:100%;flex-wrap:wrap;align-items:flex-start}
+.cash-plan-controls>*{max-width:100%;align-self:flex-start}
+.cash-plan-controls>.picker{width:auto}
+.cash-plan-controls>.finance-range-trigger{max-width:100%;align-self:flex-start}
+.cash-plan-period-note,.cash-plan-period-error{margin:0 22px 6px;font-size:11px;line-height:1.6;color:var(--muted-foreground)}
+.cash-plan-period-error{color:var(--destructive)}
+.cash-plan-estimate-note{margin:-9px 26px 12px;font-size:12px;line-height:1.7;color:#916420}
+.cash-plan-method{margin:0 26px 22px;font-size:12px;color:var(--muted-foreground);line-height:1.8}
+.cash-plan-method>summary{cursor:pointer;color:var(--foreground);width:fit-content}
+.cash-plan-method[open]>summary{margin-bottom:8px}
+.cash-plan-method>ul{list-style:disc;padding-left:18px}
+.cash-plan-method>p{margin:6px 0}
+.cash-plan-undated>p{font-size:12px;line-height:1.7;color:var(--muted-foreground)}
+.cash-plan-schedule header time>span{font-size:10px;color:var(--muted-foreground);margin-left:5px}
+.cash-estimate-proration{font-size:11px!important;line-height:1.7;color:var(--muted-foreground);margin-top:6px}
+.cash-estimate-evidence{font-size:11px;color:var(--muted-foreground);line-height:1.7;margin-top:7px}
+.cash-estimate-evidence>summary{cursor:pointer;width:fit-content;color:var(--primary)}
+.cash-estimate-evidence>p{margin-top:7px}
+.cash-estimate-evidence>dl{display:grid;gap:3px;margin-top:8px;min-width:190px;max-width:290px}
+.cash-estimate-evidence>dl>div{display:flex;justify-content:space-between;gap:16px}
+.cash-estimate-evidence dd{font-variant-numeric:tabular-nums;color:var(--foreground)}
+.cash-plan-exclusions{list-style:none;display:grid;gap:12px;margin-bottom:20px}
+.cash-plan-exclusions li{border-top:1px dashed var(--border);padding-top:12px;font-size:12px;line-height:1.7}
+.cash-plan-exclusions strong{font-size:12px;font-weight:550;overflow-wrap:anywhere}
+.cash-plan-exclusions span{display:block;font-size:11px;color:var(--muted-foreground)}
+.cash-plan-exclusions p{color:var(--muted-foreground);margin-top:3px}
+.cash-plan-simulator-only{margin-top:24px}
+.cash-plan-simulator-only .simulation-form{max-width:720px}
+.cash-plan-overview .panel-head{padding:18px 22px 12px;align-items:flex-start}
+.cash-plan-overview .panel-head h2{font-size:16px}
+.cash-plan-overview .panel-head p{font-size:12px;margin-top:5px}
+.cash-plan-overview-note{margin:0 22px 13px;font-size:11px;line-height:1.6;color:var(--muted-foreground)}
+.cash-plan-tools{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;margin:0 22px 12px;padding:10px 0 12px;border-bottom:1px solid var(--border)}
+.cash-plan-sync-actions{display:flex;align-items:flex-start;gap:6px;flex-wrap:wrap;max-width:100%}
+.cash-plan-tool-label{font-size:10px;color:var(--muted-foreground);padding:8px 5px 0 0;white-space:nowrap}
+.cash-plan-sync-actions>[data-slot=button],.cash-plan-sync-actions .clobe-dashboard-sync-actions>[data-slot=button]{height:32px;font-size:11px;font-weight:500}
+.cash-plan-sync-actions .clobe-dashboard-sync-actions>[data-slot=button]:first-child{background:var(--card);color:var(--foreground);border:1px solid var(--border);box-shadow:none}
+.cash-plan-tools>.cash-plan-overview-note{margin:0;white-space:nowrap;font-size:10px}
+.cash-plan-warning small{display:block;font-size:11px;line-height:1.5;margin-top:2px}
+.cash-plan-simulation-note>summary{cursor:pointer;width:fit-content}
+.cash-plan-simulation-note>p{margin-top:5px}
+.cash-plan-overview-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain}
+.cash-plan-overview-scroll:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.cash-plan-overview-table{width:100%;min-width:800px;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.cash-plan-overview-table th,.cash-plan-overview-table td{padding:12px 14px!important;text-align:right;white-space:nowrap;font-size:13px;line-height:1.5;border-bottom:1px solid var(--border)}
+.cash-plan-overview-table th:first-child{padding-left:22px!important;text-align:left}
+.cash-plan-overview-table th:last-child,.cash-plan-overview-table td:last-child{padding-right:18px!important}
+.cash-plan-overview-table thead th{font-size:12px;font-weight:550;background:var(--muted);color:var(--muted-foreground);padding-top:10px!important;padding-bottom:10px!important}
+.cash-plan-overview-table th small,.cash-plan-overview-table td small{display:block;font-size:10px;font-weight:400;line-height:1.6;color:var(--muted-foreground);margin-top:2px}
+.cash-plan-overview-table tbody th{font-weight:550;max-width:230px}
+.cash-plan-overview-table tbody td{font-weight:550}
+.cash-plan-overview-company{display:flex;align-items:center;gap:7px;overflow-wrap:anywhere;white-space:normal;text-align:left;cursor:pointer;border-radius:3px}
+.cash-plan-overview-company:hover{color:var(--primary)}
+.cash-plan-overview-company:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+.cash-plan-overview-company i{width:7px;height:7px;flex-shrink:0;border-radius:50%}
+.cash-plan-overview-table .cash-plan-overview-available{background:color-mix(in srgb,var(--primary) 4%,var(--card));font-weight:700}
+.cash-plan-overview-table .cash-plan-overview-missing{color:#986818}
+.cash-plan-overview-detail{font-size:11px!important;height:28px!important;padding:0 7px!important;color:var(--primary)}
+.cash-plan-overview .cash-plan-overview-method{margin:10px 22px 13px;font-size:11px}
+.cash-plan-dialog{width:min(920px,calc(100vw - 32px))!important;max-width:920px!important;max-height:90vh;display:flex!important;flex-direction:column;gap:16px;overflow:hidden;padding:24px!important}
+.cash-plan-dialog>[data-slot=dialog-header]{padding-right:30px;text-align:left;flex-shrink:0}
+.cash-plan-dialog-close{position:absolute;right:16px;top:15px}
+.cash-plan-dialog-body{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:1px 3px 1px 1px}
+.cash-plan-dialog-body .cash-plan-business{border-color:var(--border)}
+.cash-plan-view-switch{display:flex;align-items:center;gap:2px;padding:3px;border:1px solid var(--border);border-radius:7px;background:var(--muted)}
+.cash-plan-view-switch button{padding:6px 9px;border-radius:4px;white-space:nowrap;font-size:11px;line-height:1.6;color:var(--muted-foreground);cursor:pointer}
+.cash-plan-view-switch button[aria-pressed=true]{background:var(--card);color:var(--foreground);font-weight:650;box-shadow:0 1px 3px #0000000b}
+.cash-plan-view-switch button:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.cash-worksheet-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:0 18px 3px}
+.cash-worksheet-scroll:focus-visible,.cash-worksheet-rows:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.cash-worksheet-grid{display:grid;gap:10px;align-items:start;min-width:fit-content}
+.cash-worksheet-business{min-width:0;--worksheet-line:color-mix(in srgb,var(--foreground) 24%,var(--border));--worksheet-header:color-mix(in srgb,#bdb0d2 48%,var(--card));--worksheet-item:color-mix(in srgb,#d4c8e4 31%,var(--card));font-size:12px}
+.cash-worksheet-heading{min-height:35px;display:flex;align-items:center;justify-content:space-between;gap:4px}
+.cash-worksheet-heading-actions{display:flex;align-items:center;gap:1px;flex-shrink:0}
+.cash-worksheet-heading-actions>[data-slot=button]{height:26px;font-size:10px;padding:0 5px}
+.cash-plan-overview .cash-worksheet-heading{flex-wrap:nowrap}
+.cash-plan-overview .cash-worksheet-heading-actions{gap:1px}
+.cash-plan-overview .cash-worksheet-heading-actions>[data-slot=button]{height:26px;min-height:26px;padding:0 4px}
+.cash-worksheet-heading h3{display:flex;align-items:center;gap:5px;min-width:0;font-size:12px;line-height:1.35;font-weight:700;overflow-wrap:anywhere}
+.cash-worksheet-heading h3 i{width:6px;height:6px;flex-shrink:0;border-radius:50%}
+.cash-worksheet-heading .cash-plan-overview-detail{flex-shrink:0;padding:0 3px!important;font-size:10px!important;height:25px!important}
+.cash-worksheet-count{display:flex;align-items:center;justify-content:space-between;margin:0 0 5px;font-size:10px;line-height:1.4;color:var(--muted-foreground)}
+.cash-worksheet-rows{height:clamp(180px,calc(100dvh - 600px),320px);overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;border:1px solid var(--worksheet-line);background:var(--card)}
+.cash-worksheet-table{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}
+.cash-worksheet-item-col{width:42%}
+.cash-worksheet-money-col{width:31%}
+.cash-worksheet-note-col{width:27%}
+.cash-plan-overview .cash-worksheet-table th,.cash-plan-overview .cash-worksheet-table td{box-sizing:border-box;min-width:0;height:auto;padding:5px 5px!important;border:0;border-right:1px solid var(--worksheet-line);border-bottom:1px solid var(--worksheet-line);font-size:11px;line-height:1.5;vertical-align:top;white-space:normal;overflow-wrap:anywhere}
+.cash-worksheet-table th:last-child,.cash-worksheet-table td:last-child{border-right:0}
+.cash-worksheet-table thead th{position:sticky;top:0;z-index:1;background:var(--worksheet-header);background-clip:padding-box;text-align:center;font-size:11px;font-weight:700;color:var(--foreground);padding-top:6px!important;padding-bottom:6px!important}
+.cash-worksheet-table tbody th{text-align:left;font-weight:400;background:var(--worksheet-item);overflow-wrap:anywhere}
+.cash-plan-overview .cash-worksheet-table tbody th{color:var(--foreground)}
+.cash-worksheet-table time,.cash-worksheet-undated{font-weight:600;white-space:nowrap}
+.cash-worksheet-payment-dates{display:block;margin-top:3px;color:var(--muted-foreground);font-size:10px;font-weight:400;line-height:1.5}
+.cash-worksheet-payment-dates>summary{cursor:pointer;width:fit-content}
+.cash-worksheet-payment-dates>summary:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:2px}
+.cash-worksheet-payment-dates ul{display:grid;gap:2px;list-style:none;margin:4px 0 0;padding:0}
+.cash-worksheet-payment-dates li{display:flex;justify-content:space-between;align-items:baseline;gap:4px;flex-wrap:wrap}
+.cash-worksheet-payment-dates li>span{white-space:nowrap;font-variant-numeric:tabular-nums}
+.cash-worksheet-actual-date-badge{display:block;width:fit-content;margin-top:3px;border-radius:3px;padding:1px 4px;font-size:10px;font-weight:600;color:var(--destructive);background:color-mix(in srgb,var(--destructive) 8%,var(--card))}
+.cash-worksheet-other-payment-dates{white-space:nowrap;font-size:10px;color:var(--muted-foreground)}
+.cash-worksheet-remaining-month-budget{display:block;margin-top:3px;font-size:10px;font-weight:400;line-height:1.5;color:var(--muted-foreground);font-variant-numeric:tabular-nums}
+.cash-worksheet-remaining-month-budget>span{white-space:nowrap}
+.cash-worksheet-remaining-month-budget>small{display:block;font-size:inherit;color:inherit}
+.cash-worksheet-internal-tag,.cash-worksheet-actual-only-source,.cash-worksheet-actual-only-category{display:block;margin-top:3px;font-size:10px;font-weight:400;line-height:1.5;color:var(--muted-foreground)}
+.cash-plan-overview .cash-worksheet-table .cash-worksheet-amount{text-align:right;white-space:nowrap;overflow-wrap:normal;letter-spacing:-.035em}
+.cash-worksheet-note{color:var(--muted-foreground);overflow-wrap:anywhere;font-size:10px!important}
+.cash-worksheet-estimate-changed{display:block;font-size:10px;font-weight:400;color:var(--destructive);text-decoration-color:var(--destructive)}
+.cash-worksheet-actual{display:block;font-size:11px;font-weight:600;color:var(--foreground)}
+.cash-worksheet-legend{margin:0 0 8px;font-size:10px;line-height:1.6;color:var(--muted-foreground)}
+.cash-worksheet-legend>summary{cursor:pointer;width:fit-content}
+.cash-worksheet-legend>summary:focus-visible,.cash-worksheet-pending>summary:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:3px}
+.cash-worksheet-legend p{margin:5px 0 0;max-width:650px}
+.cash-worksheet-legend del{color:var(--destructive);text-decoration-color:var(--destructive)}
+.cash-worksheet-payment-status{display:block;width:fit-content;max-width:100%;margin-bottom:4px;border-radius:3px;padding:1px 4px;font-size:10px;font-weight:650;line-height:1.5;background:var(--muted);color:var(--muted-foreground)}
+.cash-worksheet-payment-spent,.cash-worksheet-payment-paid{background:color-mix(in srgb,#198260 12%,var(--card));color:#198260}
+.cash-worksheet-payment-partial,.cash-worksheet-payment-confirmation-needed{background:color-mix(in srgb,#986818 12%,var(--card));color:#986818}
+.cash-worksheet-payment-over-budget{background:color-mix(in srgb,var(--destructive) 12%,var(--card));color:var(--destructive)}
+.cash-worksheet-source{display:block;margin-top:3px;font-size:10px;line-height:1.5}
+.cash-worksheet-memo{display:block;margin-top:3px;white-space:pre-line}
+.cash-worksheet-table .cash-worksheet-empty{padding:20px 8px!important;text-align:center;color:var(--muted-foreground);font-size:11px;border-bottom:0}
+.cash-worksheet-empty small{display:block;font-size:10px;margin-top:5px;line-height:1.6}
+.cash-worksheet-total{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:30px;padding:5px 8px;background:var(--worksheet-item);border:1px solid var(--worksheet-line);border-top:0;font-size:12px;font-variant-numeric:tabular-nums}
+.cash-worksheet-total strong,.cash-worksheet-total b{font-weight:700}
+.cash-worksheet-total b{white-space:nowrap}
+.cash-worksheet-balances{display:grid;gap:4px;padding:8px 1px 2px;font-size:11px;line-height:1.4;font-variant-numeric:tabular-nums}
+.cash-worksheet-balances>div{display:flex;align-items:baseline;justify-content:space-between;gap:5px}
+.cash-worksheet-balances dt{color:var(--muted-foreground)}
+.cash-worksheet-balances dt small{font-size:9px}
+.cash-worksheet-balances dd{white-space:nowrap;font-weight:600}
+.cash-worksheet-balances .cash-worksheet-current{padding-bottom:1px}
+.cash-worksheet-current dt{font-weight:650;color:var(--foreground)}
+.cash-worksheet-current dt small,.cash-worksheet-current dd small{display:block;font-size:9px;line-height:1.5;color:var(--muted-foreground);font-weight:400;white-space:normal}
+.cash-worksheet-current dd{font-size:13px}
+.cash-account-balances{display:grid;gap:2px;min-width:0;margin:2px 0 0;padding:0;list-style:none;font-size:10px;line-height:1.4;font-variant-numeric:tabular-nums;color:var(--muted-foreground)}
+.cash-account-balances>li{display:flex;align-items:baseline;justify-content:space-between;gap:10px;min-width:0}
+.cash-account-balances>li>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:inherit}
+.cash-account-balances>li>b{flex-shrink:0;font-size:inherit;font-weight:500;color:var(--foreground)}
+.cash-account-balances>li>b.negative{color:var(--destructive)}
+.cash-account-balances>li>b.cash-plan-unknown{color:#986818}
+.cash-worksheet-balances .cash-worksheet-account-breakdown{display:block;padding-bottom:6px;margin-bottom:2px;border-bottom:1px solid var(--border)}
+.cash-worksheet-account-breakdown>dd{width:100%;white-space:normal;font-weight:400}
+.cash-plan-overview-table .cash-account-balances{min-width:145px;text-align:left;white-space:normal}
+.cash-plan-current-balance .cash-account-balances{min-width:180px;max-width:290px}
+@media(max-width:600px){.cash-plan-current-balance{margin-left:18px;margin-right:18px;align-items:flex-start;flex-direction:column;gap:8px}.cash-plan-current-balance>p{max-width:none}}
+.cash-worksheet-balances>div:last-child{border-top:1px solid var(--border);padding-top:4px}
+.cash-worksheet-balances>div:last-child dt,.cash-worksheet-balances>div:last-child dd{font-weight:700;color:var(--foreground)}
+.cash-worksheet-balances>div:last-child dd.negative{color:var(--destructive)}
+.cash-worksheet-balances>div:last-child dd.cash-plan-unknown{color:#986818}
+@media(min-width:1280px){.cash-plan-overview .cash-plan-controls{gap:6px}.cash-plan-overview .cash-plan-controls>.picker{font-size:12px}.cash-plan-overview .panel-head{gap:10px}}
+@media(max-width:600px){.cash-plan-period-note,.cash-plan-period-error{margin-left:16px;margin-right:16px}.cash-plan-controls>.finance-range-trigger{width:100%}}
+@media(max-width:600px){.cash-plan-view-switch{flex:1;justify-content:center}.cash-plan-view-switch button{flex:1}.cash-worksheet-scroll{padding-left:12px;padding-right:12px}.cash-worksheet-rows{height:240px}}
+@media(max-width:1100px){.cash-plan-overview-table th,.cash-plan-overview-table td{padding-left:10px!important;padding-right:10px!important;font-size:12px}.cash-plan-overview-table thead th{font-size:11px}.cash-plan-overview-table tbody th{max-width:175px}.cash-plan-overview .panel-head{gap:12px}.cash-plan-overview .cash-plan-controls{gap:6px}.cash-plan-overview .cash-plan-controls>.picker{font-size:12px;min-width:115px}}
+@media(max-width:600px){.cash-plan-overview .panel-head{padding:16px 16px 10px}.cash-plan-overview-note{margin:0 16px 10px}.cash-plan-overview .cash-plan-overview-method{margin:10px 16px 12px}.cash-plan-overview-table{min-width:760px}.cash-plan-dialog{max-height:88vh;padding:18px!important;gap:12px}.cash-plan-dialog-close{right:12px;top:11px}.cash-plan-dialog-body .cash-plan-business-heading{padding-top:15px}}
+@media(max-width:1000px){.cash-plan-panel .panel-head{flex-wrap:wrap}}
+@media(max-width:600px){.cash-plan-controls{width:100%;gap:8px}.cash-plan-controls>.picker{flex:1;min-width:120px;font-size:12px}.cash-plan-estimate-note{margin-left:18px;margin-right:18px}.cash-plan-method{margin-left:18px;margin-right:18px}.cash-estimate-evidence>dl{min-width:0}.cash-plan-schedule .cash-estimate-evidence small{display:inline;margin-left:5px}.cash-plan-schedule .cash-estimate-evidence>summary{font-size:10px}.cash-plan-undated>p{font-size:11px}}
+@media(max-width:850px){.cash-plan-equation{gap:8px;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}.cash-plan-equation strong{font-size:21px}.cash-plan-business-heading,.cash-plan-equation,.cash-plan-secondary{padding-left:18px;padding-right:18px}.cash-plan-breakdowns{padding:0 18px}.cash-plan-equation>.cash-plan-after{padding-left:10px;padding-right:10px}.cash-plan-secondary dl{gap:8px 24px}}
+@media(max-width:600px){.cash-plan-panel .panel-head{flex-wrap:wrap}.cash-plan-panel .panel-head>.picker{width:auto}.cash-plan-basis{margin:0 18px 18px;font-size:12px}.cash-plan-businesses{padding:0 12px 18px;gap:16px}.cash-plan-business-heading{align-items:flex-start;flex-direction:column;gap:8px;padding-bottom:12px}.cash-plan-business-heading h3{font-size:16px}.cash-plan-status{font-size:10px}.cash-plan-equation{display:block;padding-top:0;padding-bottom:16px}.cash-plan-equation>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:11px 0}.cash-plan-equation>div>span{align-self:center;font-size:12px}.cash-plan-equation strong{font-size:21px;line-height:1.4;letter-spacing:-.04em;text-align:right;margin:0;max-width:100%}.cash-plan-equation small{grid-column:1/-1;font-size:10px}.cash-plan-equation>.cash-plan-after{padding:12px;margin-top:8px}.cash-plan-secondary dl{display:grid;gap:8px}.cash-plan-secondary dl>div{gap:12px}.cash-plan-secondary dt{font-size:11px}.cash-plan-secondary dd{font-size:13px}.cash-plan-warning,.cash-plan-empty{margin-left:18px;margin-right:18px}.cash-plan-accounts li{gap:12px;flex-wrap:wrap}.cash-plan-accounts li>div{flex:1 1 180px}.cash-plan-accounts li>b{font-size:13px}.cash-plan-detail>summary small{display:block;margin:1px 0 0}.cash-plan-schedule li{padding:11px;gap:12px;font-size:12px}.cash-plan-schedule section>header{padding:9px 11px}.cash-plan-schedule li small{margin:3px 0 0;display:block}}
+
+.cash-worksheet-pending{margin:8px 0;color:var(--destructive);font-size:11px;line-height:1.6}
+.cash-worksheet-pending>summary{cursor:pointer;font-size:10px}
+.cash-worksheet-pending>p{margin-top:4px;font-size:10px}
+@media(max-width:600px){.cash-plan-tools{margin-left:16px;margin-right:16px;gap:7px}.cash-plan-tools>.cash-plan-overview-note{white-space:normal}.cash-plan-tool-label{width:100%;padding:0}.cash-plan-sync-actions{gap:5px}.cash-worksheet-heading-actions>[data-slot=button]{padding-left:4px;padding-right:4px}}
+.cash-plan-overview .cash-worksheet-table .cash-worksheet-tax-row th,.cash-plan-overview .cash-worksheet-table .cash-worksheet-tax-row td{background:color-mix(in srgb,#e45c68 7%,var(--card));color:var(--destructive);border-bottom-color:color-mix(in srgb,#b52736 28%,var(--worksheet-line))}
+.cash-plan-overview .cash-worksheet-table .cash-worksheet-tax-row th{border-left:3px solid #b52736;font-weight:600}
+.cash-worksheet-tax-badge{display:block;width:fit-content;font-size:9px;font-weight:700;background:color-mix(in srgb,#b52736 9%,var(--card));border-radius:3px;padding:1px 4px;margin-bottom:3px}
+.cash-series-panel{overflow:hidden}
+.cash-series-controls{display:flex;align-items:center;gap:5px}
+.cash-series-controls input{width:145px;height:32px;font-size:12px}
+.cash-series-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:0 18px}
+.cash-series-scroll:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.cash-series-table{width:100%;min-width:800px;table-layout:fixed;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.cash-series-table th,.cash-series-table td{padding:7px 9px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+.cash-series-table thead th{font-size:11px;color:var(--muted-foreground);font-weight:500}
+.cash-series-table thead th:first-child,.cash-series-table .cash-series-business{width:150px;text-align:left}
+.cash-series-table thead th:nth-child(2){width:105px;text-align:left}
+.cash-series-table tbody th[scope=row]{text-align:left;color:var(--muted-foreground);font-size:11px;font-weight:500}
+.cash-series-table .cash-series-business{font-size:12px;font-weight:700;white-space:normal;overflow-wrap:anywhere;vertical-align:middle}
+.cash-series-table thead button{width:100%;padding:4px 2px;border-radius:4px;text-align:right;cursor:pointer}
+.cash-series-table thead button:hover{background:var(--muted);color:var(--foreground)}
+.cash-series-table thead button[aria-pressed=true]{color:var(--primary);font-weight:700;background:color-mix(in srgb,var(--primary) 6%,var(--card))}
+.cash-series-table thead button:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.cash-series-table .cash-series-total{background:color-mix(in srgb,var(--primary) 4%,var(--card));font-weight:700}
+.cash-series-table .cash-series-total th[scope=row]{color:var(--foreground);font-weight:700}
+.cash-series-table .cash-series-zero{color:var(--muted-foreground)}
+.cash-series-table tbody+tbody tr:first-child>*{border-top:2px solid var(--border)}
+.cash-series-notes{margin:9px 22px 13px;font-size:10px;line-height:1.6;color:var(--muted-foreground)}
+.cash-series-notes p{margin:0 0 4px}
+.cash-series-notes summary{cursor:pointer;width:fit-content}
+.cash-series-notes ul{padding-left:16px;margin-top:4px;max-width:1000px}
+@media(max-width:640px){.cash-series-controls{gap:3px}.cash-series-controls input{width:132px}.cash-series-scroll{padding:0 12px}.cash-series-notes{margin-left:16px;margin-right:16px}.cash-series-table{min-width:760px}.cash-series-table thead th:first-child,.cash-series-table .cash-series-business{width:125px}}
+.cash-series-detail-button{display:inline-flex;flex-direction:column;align-items:flex-end;gap:2px;max-width:100%;padding:1px 0;border-radius:3px;cursor:pointer}
+.cash-series-detail-button>span{font-variant-numeric:tabular-nums}
+.cash-series-detail-button small{display:flex;align-items:center;gap:1px;color:var(--primary);font-size:11px;font-weight:500;line-height:1.4}
+.cash-series-detail-button:hover>span{text-decoration:underline;text-underline-offset:3px}
+.cash-series-detail-button:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+.cash-series-breakdown-dialog{width:min(1120px,calc(100vw - 32px))!important;max-width:1120px!important;max-height:90dvh;display:flex!important;flex-direction:column;gap:0!important;overflow:hidden;padding:0!important}
+.cash-series-breakdown-heading{display:flex!important;flex-direction:row!important;align-items:flex-start;justify-content:space-between;gap:12px;text-align:left;padding:20px 22px 15px;border-bottom:1px solid var(--border);flex-shrink:0}
+.cash-series-breakdown-heading>[data-slot=button]{flex-shrink:0;margin:-3px -5px 0 0}
+.cash-series-breakdown-heading [data-slot=dialog-description]{margin-top:5px;font-size:12px}
+.cash-series-breakdown-body{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:18px 22px 20px}
+.cash-series-detail-totals{display:grid;grid-template-columns:minmax(0,2fr) repeat(2,minmax(0,1fr));gap:12px;align-items:end;padding-bottom:16px;font-variant-numeric:tabular-nums}
+.cash-series-detail-totals dt{font-size:11px;line-height:1.5;color:var(--muted-foreground);margin-bottom:4px}
+.cash-series-detail-totals dd{font-size:20px;font-weight:700;line-height:1.4}
+.cash-series-detail-totals>div:first-child dd{font-size:27px;letter-spacing:-.035em}
+.cash-series-detail-totals small{font-size:10px;margin-left:4px;color:var(--muted-foreground);font-weight:400;white-space:nowrap}
+.cash-series-detail-groups{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:19px;font-variant-numeric:tabular-nums}
+.cash-series-detail-groups>div{display:flex;flex-direction:column;gap:4px;padding:9px 11px;border:1px solid var(--border);border-radius:5px;background:var(--muted)}
+.cash-series-detail-groups span{font-size:11px;line-height:1.5;color:var(--muted-foreground)}
+.cash-series-detail-groups small{font-size:9px;margin-left:6px}
+.cash-series-detail-groups b{font-size:14px;line-height:1.5;letter-spacing:-.025em}
+.cash-series-detail-section+section{margin-top:22px}
+.cash-series-detail-section>header{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:8px}
+.cash-series-detail-section h3{font-size:13px;font-weight:650;line-height:1.5}
+.cash-series-detail-section h3 small{font-size:11px;color:var(--muted-foreground);font-weight:400;margin-left:4px}
+.cash-series-detail-section>header>span{font-size:10px;color:var(--muted-foreground)}
+.cash-series-detail-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;border:1px solid var(--border);border-radius:5px}
+.cash-series-detail-scroll:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.cash-series-detail-table{width:100%;min-width:780px;table-layout:fixed;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.cash-series-detail-table th,.cash-series-detail-table td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;line-height:1.5;overflow-wrap:anywhere}
+.cash-series-detail-table thead th{font-size:11px;font-weight:500;color:var(--muted-foreground);background:var(--muted)}
+.cash-series-detail-table tbody th{font-weight:500}
+.cash-series-detail-table tbody tr:last-child>*{border-bottom:0}
+.cash-series-detail-table .cash-series-detail-money{text-align:right;white-space:nowrap;font-weight:650}
+.cash-series-detail-table time{font-size:11px;white-space:nowrap}
+.cash-series-group-col{width:10%}.cash-series-title-col{width:23%}.cash-series-amount-col{width:14%}.cash-series-date-col{width:13%}.cash-series-account-col{width:19%}
+.cash-series-original-title{display:block;margin-top:3px;color:var(--muted-foreground);font-size:10px;font-weight:400}
+.cash-series-detail-muted{font-size:11px;color:var(--muted-foreground)}
+.cash-series-row-memo{font-size:10px;color:var(--muted-foreground)}
+.cash-series-row-memo summary{width:fit-content;cursor:pointer;color:var(--primary)}
+.cash-series-row-memo p{margin-top:4px;white-space:pre-line;line-height:1.6}
+.cash-series-detail-excluded .cash-series-detail-table{min-width:630px}
+.cash-series-detail-excluded .cash-series-title-col{width:30%}
+.cash-series-exclusion-kind{font-size:10px;font-weight:650;color:var(--muted-foreground)}
+.cash-series-exclusion-note{font-size:11px;margin-top:3px;white-space:pre-line;color:var(--muted-foreground)}
+.cash-series-excluded-month-amount{display:block;font-size:10px;font-weight:400;color:var(--muted-foreground);margin-top:3px;white-space:normal}
+.cash-series-detail-empty,.cash-series-detail-error{font-size:12px;line-height:1.7;color:var(--muted-foreground);padding:12px 0}
+.cash-series-detail-error{color:var(--destructive)}
+.cash-series-breakdown-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 22px;border-top:1px solid var(--border);flex-shrink:0}
+.cash-series-breakdown-footer p{font-size:10px;line-height:1.5;color:var(--muted-foreground)}
+@media(max-width:640px){.cash-series-breakdown-dialog{width:calc(100vw - 20px)!important;max-height:92dvh}.cash-series-breakdown-heading{padding:16px 16px 12px}.cash-series-breakdown-heading [data-slot=dialog-title]{font-size:16px}.cash-series-breakdown-body{padding:14px 16px 16px}.cash-series-detail-totals{grid-template-columns:1fr 1fr;gap:10px}.cash-series-detail-totals>div:first-child{grid-column:1/-1}.cash-series-detail-totals>div:first-child dd{font-size:25px}.cash-series-detail-totals dd{font-size:17px}.cash-series-detail-groups{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.cash-series-detail-groups>div{padding:7px 9px}.cash-series-detail-groups b{font-size:13px}.cash-series-detail-section>header{align-items:flex-start}.cash-series-breakdown-footer{padding:10px 16px}.cash-series-breakdown-footer p{max-width:230px}.cash-series-detail-button small{font-size:10px}}
+.cash-series-fixed-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.cash-series-fixed-toolbar>span{font-size:11px;color:var(--muted-foreground)}
+.cash-series-fixed-form{padding:14px;margin-bottom:18px;border:1px solid color-mix(in srgb,var(--primary) 35%,var(--border));border-radius:7px;background:color-mix(in srgb,var(--primary) 3%,var(--card))}
+.cash-series-fixed-form>header{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px}
+.cash-series-fixed-form h3{font-size:13px;font-weight:650}
+.cash-series-fixed-form>header>span{font-size:11px;color:var(--primary)}
+.cash-series-fixed-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px 14px}
+.cash-series-fixed-fields label{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:500}
+.cash-series-fixed-fields .cash-series-fixed-wide{grid-column:1/-1}
+.cash-series-fixed-fields input,.cash-series-fixed-fields textarea,.cash-series-fixed-fields select{font-size:12px;background:var(--card)}
+.cash-series-fixed-fields select{height:36px;padding:0 9px;border:1px solid var(--border);border-radius:5px;min-width:0;max-width:100%}
+.cash-series-fixed-fields select:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.cash-series-fixed-fields label>small{font-size:10px;font-weight:400;color:var(--muted-foreground)}
+.cash-series-fixed-form>footer{display:flex;justify-content:flex-end;gap:6px;margin-top:12px}
+.cash-series-fixed-guidance{font-size:11px;line-height:1.6;color:var(--muted-foreground);margin:0 0 12px}
+.cash-series-fixed-toolbar-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.cash-series-fixed-error{font-size:11px;line-height:1.6;color:var(--destructive);margin:10px 0;white-space:pre-line}
+.cash-series-fixed-error button{margin-top:6px}
+.cash-series-fixed-success{font-size:11px;line-height:1.6;color:var(--primary);margin:0 0 12px}
+.cash-series-detail-editable{min-width:940px}
+.cash-series-detail-editable .cash-series-title-col{width:21%}
+.cash-series-detail-editable .cash-series-date-col{width:12%}
+.cash-series-detail-editable .cash-series-account-col{width:17%}
+.cash-series-action-col{width:70px}
+.cash-series-row-actions{white-space:nowrap!important}
+.cash-series-row-actions button+button{margin-left:3px}
+.cash-series-removal-review{padding:14px;border:1px solid var(--destructive);border-radius:7px;margin-bottom:16px;background:color-mix(in srgb,var(--destructive) 3%,var(--card))}
+.cash-series-removal-review h3{font-size:13px;font-weight:650;margin-bottom:5px}
+.cash-series-removal-review>p{font-size:12px;line-height:1.6}
+.cash-series-removal-review>small{display:block;font-size:11px;line-height:1.6;color:var(--muted-foreground);margin-top:5px}
+.cash-series-removal-review>div{display:flex;justify-content:flex-end;gap:6px;margin-top:10px}
+.cash-series-discard-review{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
+.cash-series-discard-review>div{display:flex;gap:6px}
+@media(max-width:640px){.cash-series-fixed-fields{grid-template-columns:1fr}.cash-series-fixed-fields .cash-series-fixed-wide{grid-column:auto}.cash-series-fixed-form{padding:12px}.cash-series-fixed-toolbar{flex-wrap:wrap}.cash-series-fixed-toolbar>span{font-size:10px}.cash-series-fixed-toolbar-actions{margin-left:auto}.cash-series-discard-review{align-items:flex-start;flex-direction:column;gap:8px}.cash-series-discard-review>div{width:100%;justify-content:flex-end}.cash-series-fixed-fields input,.cash-series-fixed-fields select{font-size:14px}}
+.cash-series-scope{margin:0 0 13px;padding:9px 11px;border:1px solid var(--border);border-radius:5px;background:var(--card);min-width:0}
+.cash-series-scope legend{font-size:11px;font-weight:600;padding:0 4px}
+.cash-series-scope legend small{font-size:10px;font-weight:400;margin-left:6px;color:var(--muted-foreground)}
+.cash-series-scope>div{display:flex;align-items:center;gap:8px 18px;flex-wrap:wrap}
+.cash-series-scope label{display:flex;align-items:center;gap:6px;min-height:30px;font-size:12px;cursor:pointer}
+.cash-series-scope input{accent-color:var(--primary);width:14px;height:14px;margin:0}
+.cash-series-scope p{font-size:10px;line-height:1.6;margin:4px 0 0;color:var(--muted-foreground)}
+.cash-series-scope:disabled{opacity:.65}
+.cash-series-removal-review .cash-series-scope{margin-top:10px;margin-bottom:6px}

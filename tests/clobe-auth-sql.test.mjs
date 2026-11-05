@@ -1,0 +1,92 @@
+// Isolated synthetic PostgreSQL only. No Supabase/cloud authentication is used.
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+const {PGlite}=await import(process.env.PGLITE_MODULE||'@electric-sql/pglite');
+
+test('Clobe encrypted store enforces admin scope, lease/CAS, one-use actor-bound attempts and refresh crash protection',async()=>{
+ const db=new PGlite();
+ const owner='10000000-0000-4000-8000-000000000001',admin='10000000-0000-4000-8000-000000000002',outsider='10000000-0000-4000-8000-000000000003';
+ const lease='20000000-0000-4000-8000-000000000001',otherLease='20000000-0000-4000-8000-000000000002',attempt='30000000-0000-4000-8000-000000000001',laterAttempt='30000000-0000-4000-8000-000000000002';
+ const cipher='v1.c3ludGhldGlj.c3ludGhldGlj.c3ludGhldGlj';
+ let checks=0;
+ const eq=(actual,expected,message)=>{assert.deepEqual(actual,expected,message);checks++;};
+ const rejects=async(fn,pattern)=>{await assert.rejects(fn,pattern);checks++;};
+ const scalar=async(sql,args=[])=>Object.values((await db.query(sql,args)).rows[0])[0];
+ const asUser=async(id)=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role authenticated');};
+ const store=(action,payload={})=>scalar('select public.fd_clobe_auth($1,$2::jsonb)',[action,JSON.stringify(payload)]);
+ const expires=()=>new Date(Date.now()+3600000).toISOString();
+ try{
+  await db.exec(`create role anon;create role authenticated;create schema auth;create schema private;
+   create table auth.users(id uuid primary key);
+   create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+   create table private.synthetic_admins(user_id uuid primary key,owner_id uuid not null,active boolean not null default true);
+   create function private.finance_workspace_owner() returns uuid language sql stable security definer set search_path='' as $$select owner_id from private.synthetic_admins where user_id=auth.uid() and active$$;
+   grant usage on schema public,private,auth to authenticated,anon;
+   grant execute on function auth.uid(),private.finance_workspace_owner() to authenticated;
+   -- Simulate broad project default grants; migration must explicitly revoke.
+   alter default privileges in schema private grant all on tables to anon,authenticated;`);
+  for(const id of [owner,admin,outsider])await db.query('insert into auth.users values($1)',[id]);
+  await db.query('insert into private.synthetic_admins(user_id,owner_id) values($1,$1),($2,$1)',[owner,admin]);
+  const sql=await readFile(new URL('../supabase/migrations/20261007044028_clobe_oauth_connection.sql',import.meta.url),'utf8');
+  await db.exec(sql);
+  const functions=(await db.query("select n.nspname,p.proname,p.prosecdef,p.proconfig from pg_proc p join pg_namespace n on n.oid=p.pronamespace where p.proname in ('fd_clobe_auth','fd_clobe_auth_core')")).rows;
+  eq(functions.length,2,'only wrapper and internal implementation created');
+  eq(functions.find(fn=>fn.nspname==='public').prosecdef,false,'public API remains SECURITY INVOKER');
+  eq(functions.find(fn=>fn.nspname==='private').prosecdef,true,'private implementation owns its tightly limited store');
+  assert.ok(functions.every(fn=>fn.proconfig.includes('search_path=""')));checks++;
+  eq(await scalar("select relrowsecurity from pg_class where oid='private.fd_clobe_connections'::regclass"),true,'private table has RLS defense in depth');
+  eq(await scalar("select has_table_privilege('authenticated','private.fd_clobe_connections','select')"),false,'default read grants are removed');
+  eq(await scalar("select has_table_privilege('anon','private.fd_clobe_connections','insert')"),false,'default write grants are removed');
+  eq(await scalar("select has_function_privilege('anon','public.fd_clobe_auth(text,jsonb)','execute')"),false,'anonymous wrapper execute is removed');
+
+  await asUser(admin);
+  const empty=await store('read');eq(empty.version,0,'empty store is represented without creating credentials');eq(empty.token_ciphertext,null,'initially disconnected');
+  await rejects(()=>db.query('select * from private.fd_clobe_connections'),/permission denied/);
+  await rejects(()=>store('read',{owner_id:outsider}),/CLOBE_INVALID_PAYLOAD/);
+  await rejects(()=>store('arbitrary'),/CLOBE_INVALID_ACTION/);
+  let result=await store('claim',{version:0,lease_id:lease});eq(result.version,0,'claim does not falsely advance token version');
+  await rejects(()=>store('claim',{version:0,lease_id:otherLease}),/CLOBE_BUSY/);
+  await rejects(()=>store('client',{version:0,lease_id:lease}),/CLOBE_INVALID_PAYLOAD/);
+  await asUser(owner);
+  await rejects(()=>store('client',{version:0,lease_id:lease,ciphertext:cipher}),/CLOBE_STALE/);
+  await asUser(admin);
+  result=await store('client',{version:0,lease_id:lease,ciphertext:cipher});eq(result.version,1,'client registration commits once');
+  assert.ok(!('owner_id' in result)&&!('lease_id' in result)&&!('attempt_id' in result));checks++;
+  await store('claim',{version:1,lease_id:lease});
+  await rejects(()=>store('client',{version:1,lease_id:lease,ciphertext:cipher}),/CLOBE_STALE/);
+  await store('release',{lease_id:lease,error:null});
+  await store('begin',{attempt_id:attempt});
+  await asUser(owner);
+  await rejects(()=>store('consume',{attempt_id:attempt,lease_id:lease}),/CLOBE_ATTEMPT_INVALID/);
+  await asUser(admin);
+  await store('begin',{attempt_id:laterAttempt});
+  await rejects(()=>store('consume',{attempt_id:attempt,lease_id:lease}),/CLOBE_ATTEMPT_INVALID/);
+  result=await store('consume',{attempt_id:laterAttempt,lease_id:lease});eq(result.version,1,'latest attempt consumed before network exchange');
+  await rejects(()=>store('tokens',{version:0,lease_id:lease,ciphertext:cipher,expires_at:expires()}),/CLOBE_STALE/);
+  result=await store('tokens',{version:1,lease_id:lease,ciphertext:cipher,expires_at:expires()});eq(result.version,2,'token save is version checked');
+  await rejects(()=>store('consume',{attempt_id:laterAttempt,lease_id:lease}),/CLOBE_ATTEMPT_INVALID/);
+  await asUser(owner);eq((await store('read')).token_ciphertext,cipher,'another active admin shares ciphertext through checked RPC');
+  await store('claim_refresh',{version:2,lease_id:lease});eq((await store('read')).last_error,'refresh_uncertain','durable marker precedes refresh request');
+  await asUser(admin);await rejects(()=>store('tokens',{version:2,lease_id:lease,ciphertext:cipher,expires_at:expires()}),/CLOBE_STALE/);
+  await db.exec('reset role');await db.exec("update private.fd_clobe_connections set lease_expires_at=clock_timestamp()-interval '1 second'");
+  await asUser(owner);await rejects(()=>store('tokens',{version:2,lease_id:lease,ciphertext:cipher,expires_at:expires()}),/CLOBE_STALE/);
+  await rejects(()=>store('claim_refresh',{version:2,lease_id:otherLease}),/CLOBE_STALE/);
+  await store('release',{lease_id:lease,error:'refresh_uncertain'});
+  eq((await store('read')).last_error,'refresh_uncertain','expired refresh cannot automatically reuse old credentials');
+  await store('begin',{attempt_id:attempt});
+  await db.exec('reset role');await db.exec("update private.fd_clobe_connections set attempt_expires_at=clock_timestamp()-interval '1 second'");
+  await asUser(owner);await rejects(()=>store('consume',{attempt_id:attempt,lease_id:otherLease}),/CLOBE_ATTEMPT_INVALID/);
+  await store('begin',{attempt_id:laterAttempt});await store('consume',{attempt_id:laterAttempt,lease_id:otherLease});
+  result=await store('tokens',{version:2,lease_id:otherLease,ciphertext:cipher,expires_at:expires()});eq(result.last_error,null,'fresh consent clears uncertainty');eq(result.version,3,'reconnect retains workspace identity and increments CAS version');
+
+  await asUser(outsider);await rejects(()=>store('read'),/ADMIN_REQUIRED/);await rejects(()=>store('claim',{version:3,lease_id:lease}),/ADMIN_REQUIRED/);
+  await db.exec('reset role;set role anon');await rejects(()=>store('read'),/permission denied/);await rejects(()=>db.query('select private.fd_clobe_auth_core(\'read\',\'{}\')'),/permission denied/);
+  await db.exec('reset role');await db.query('update private.synthetic_admins set active=false where user_id=$1',[admin]);
+  await asUser(admin);await rejects(()=>store('read'),/ADMIN_REQUIRED/);
+  await asUser(owner);eq((await store('read')).version,3,'revoking another admin retains shared workspace connection');
+  await db.exec('reset role');eq(await scalar('select count(*)::int from private.fd_clobe_connections'),1,'only the known workspace receives a connection row');
+  eq(await scalar("select count(*)::int from information_schema.columns where table_schema='private' and table_name='fd_clobe_connections' and column_name in ('access_token','refresh_token','client_secret','code_verifier','authorization_code')"),0,'no plaintext credential columns exist');
+  console.log(`Clobe auth SQL checks: ${checks} passed.`);
+ }finally{await db.close();}
+});

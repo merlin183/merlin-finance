@@ -1,0 +1,48 @@
+.tax-payment-alert{--tax-red:#b52736;--tax-line:color-mix(in srgb,var(--tax-red) 38%,var(--border));position:relative;border:1px solid var(--tax-line);border-left:5px solid var(--tax-red);border-radius:10px;background:linear-gradient(105deg,color-mix(in srgb,#fff0f0 68%,var(--card)),var(--card) 72%);margin:0 0 24px;padding:18px 20px 12px;color:var(--foreground);box-shadow:0 3px 16px #a80f1d08;font-variant-numeric:tabular-nums}
+.dark .tax-payment-alert{--tax-red:#ff7d89;background:linear-gradient(105deg,color-mix(in srgb,#7e1620 16%,var(--card)),var(--card) 72%)}
+.tax-payment-alert.overdue{border-left-width:7px}
+.tax-payment-alert-heading{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.tax-payment-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:11px;background:color-mix(in srgb,var(--tax-red) 9%,var(--card));color:var(--tax-red);flex-shrink:0}
+.tax-payment-alert-heading p{color:var(--tax-red);font-size:11px;line-height:1.6;font-weight:650;margin-bottom:2px}
+.tax-payment-alert h2{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:20px;line-height:1.5;font-weight:750;letter-spacing:-.025em}
+.tax-payment-badge{display:inline-flex;align-items:center;white-space:nowrap;border-radius:4px;padding:3px 6px;background:color-mix(in srgb,#be2030 9%,var(--card));color:#b52736;font-size:10px;line-height:1.5;font-weight:700}
+.dark .tax-payment-badge{background:color-mix(in srgb,#b52736 16%,var(--card));color:#ff8994}
+.tax-payment-alert-total{margin-left:auto;display:grid;text-align:right;gap:2px}
+.tax-payment-alert-total span{font-size:10px;color:var(--muted-foreground)}
+.tax-payment-alert-total strong{font-size:23px;line-height:1.5;letter-spacing:-.035em;color:var(--tax-red);white-space:nowrap}
+.tax-payment-detail-button{background:var(--tax-red)!important;color:#fff!important;font-size:12px!important;height:37px!important}
+.tax-payment-alert-items{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:15px}
+.tax-payment-alert-items>div{display:grid;grid-template-columns:1fr auto;gap:3px 12px;padding:11px 13px;border:1px solid color-mix(in srgb,var(--tax-red) 16%,var(--border));border-radius:7px;background:color-mix(in srgb,var(--card) 88%,transparent);min-width:0}
+.tax-payment-alert-items strong{font-size:12px;font-weight:650;line-height:1.6;overflow-wrap:anywhere}
+.tax-payment-alert-items span{grid-column:1;font-size:11px;color:var(--muted-foreground);line-height:1.6}
+.tax-payment-alert-items b{grid-column:2;grid-row:1 / 3;align-self:center;font-size:16px;font-weight:700;letter-spacing:-.03em;color:var(--tax-red);white-space:nowrap}
+.tax-payment-alert-items small{grid-column:1 / -1;color:var(--muted-foreground);font-size:10px;line-height:1.5}
+.tax-payment-alert footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px;font-size:10px;line-height:1.6;color:var(--muted-foreground)}
+.tax-payment-alert footer button{display:flex;align-items:center;gap:5px;white-space:nowrap;color:var(--tax-red);font-weight:650;cursor:pointer;padding:3px;border-radius:3px}
+.tax-payment-alert button:focus-visible,.tax-payment-tabs button:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+.tax-payment-complete{display:flex;align-items:center;gap:8px;margin:0 0 16px;font-size:12px;color:var(--muted-foreground)}
+.tax-payment-complete>svg{color:#15846d}
+.tax-payment-loading{display:flex;align-items:center;gap:6px;color:var(--muted-foreground);font-size:11px;margin:0 0 16px}
+.tax-payment-load-error{display:flex;align-items:center;gap:12px;margin:0 0 20px;padding:14px;border:1px solid color-mix(in srgb,var(--destructive) 45%,var(--border));border-radius:8px;color:var(--destructive);font-size:12px}
+.tax-payment-load-error p{font-size:11px;line-height:1.6;margin-top:3px}.tax-payment-load-error>div{flex:1}
+.tax-payment-dialog{width:min(700px,calc(100vw - 32px))!important;max-width:700px!important;max-height:90dvh;display:flex!important;flex-direction:column;gap:14px;overflow:hidden;padding:24px!important;font-variant-numeric:tabular-nums}
+.tax-payment-dialog [data-slot=dialog-header]{text-align:left;padding-right:24px}
+.tax-payment-close{position:absolute;right:12px;top:12px}
+.tax-payment-dialog-summary{display:grid;grid-template-columns:1fr auto;gap:3px;padding:13px 16px;border:1px solid color-mix(in srgb,#b52736 25%,var(--border));border-radius:7px;background:color-mix(in srgb,#e45c68 5%,var(--card))}
+.tax-payment-dialog-summary>span{font-size:12px;align-self:center}.tax-payment-dialog-summary strong{font-size:24px;letter-spacing:-.035em;color:var(--destructive)}.tax-payment-dialog-summary small{grid-column:1/-1;font-size:10px;color:var(--muted-foreground)}
+.tax-payment-tabs{display:flex;gap:4px;border-bottom:1px solid var(--border)}
+.tax-payment-tabs button{padding:8px 13px;font-size:12px;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted-foreground)}.tax-payment-tabs button[aria-pressed=true]{border-bottom-color:var(--destructive);color:var(--foreground);font-weight:650}
+.tax-payment-dialog-body{overflow:auto;min-height:0;overscroll-behavior:contain;padding:1px;display:grid;gap:12px}
+.tax-payment-entry{border:1px solid color-mix(in srgb,#b52736 24%,var(--border));border-left:3px solid #b52736;border-radius:7px;padding:15px;background:var(--card)}
+.tax-payment-entry header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.tax-payment-entry header strong{font-size:14px;font-weight:650}.tax-payment-entry header p{font-size:12px;color:var(--muted-foreground);margin-top:3px;line-height:1.6}.tax-payment-entry header b{font-size:18px;white-space:nowrap;color:var(--destructive);letter-spacing:-.035em}
+.tax-payment-entry-date{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:10px 0;font-size:12px;font-weight:650}
+.tax-payment-account,.tax-payment-memo,.tax-payment-entry-warning{font-size:11px;color:var(--muted-foreground);line-height:1.7;overflow-wrap:anywhere;white-space:pre-wrap}
+.tax-payment-entry-warning{margin-top:5px;color:var(--destructive)}
+.tax-payment-entry-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:12px}
+.tax-payment-entry.paid{border-color:var(--border);border-left-color:#15846d}.tax-payment-entry.paid .tax-payment-badge{color:#15846d;background:color-mix(in srgb,#15846d 8%,var(--card))}.tax-payment-entry.paid header b{color:var(--foreground)}
+.tax-payment-confirm{padding:11px;margin-top:12px;border:1px dashed color-mix(in srgb,var(--destructive) 38%,var(--border));border-radius:5px;font-size:11px;line-height:1.8}.tax-payment-confirm>div{display:flex;justify-content:flex-end;gap:7px;margin-top:9px}
+.tax-payment-error{color:var(--destructive);font-size:12px;line-height:1.7}.tax-payment-success{color:#15846d;font-size:12px;line-height:1.7}
+.tax-payment-empty{color:var(--muted-foreground);padding:28px 10px;text-align:center;font-size:12px}
+.tax-payment-dialog-note{font-size:10px;line-height:1.7;color:var(--muted-foreground)}
+@media(max-width:600px){.tax-payment-alert{padding:14px 13px 10px}.tax-payment-alert-heading{gap:9px}.tax-payment-icon{width:33px;height:33px}.tax-payment-alert h2{font-size:17px;gap:5px}.tax-payment-alert-total{margin-left:0;flex:1}.tax-payment-alert-total strong{font-size:20px}.tax-payment-alert-items{grid-template-columns:1fr}.tax-payment-alert footer{align-items:flex-start;flex-wrap:wrap}.tax-payment-dialog{padding:18px!important}.tax-payment-entry header{flex-wrap:wrap}.tax-payment-dialog-summary strong{font-size:20px}.tax-payment-load-error{flex-wrap:wrap}.tax-payment-load-error>div{min-width:180px}}

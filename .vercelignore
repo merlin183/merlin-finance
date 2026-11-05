@@ -1,0 +1,9 @@
+outputs
+work
+.wrangler
+.sites-runtime
+dist
+.git
+.env*
+tests
+/supabase/

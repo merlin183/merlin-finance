@@ -1,0 +1,20 @@
+import type {AccountBalanceSnapshot} from './account-balance-types';
+import type {BankPlanActual,BankPlanCoverage} from './clobe-plan-actuals';
+import type {CashPlanSeries} from './cash-plan-series';
+import type {CashPlanSeriesRevision} from './cash-plan-series-revision';
+
+export type Business={id:string;name:string;representative:string;kind:string;reserve:number;color:string};
+export type Account={id:string;business_id:string;name:string;bank:string;masked_number:string;opening_balance:number;opening_balance_date:string|null};
+export type Category={is_fixed?:boolean;id:string;name:string;group_name:string;is_operating:boolean;is_internal:boolean};
+export type Rule={id:string;pattern:string;field:string;category_id:string;priority:number;is_internal:boolean;account_id?:string|null;direction?:'in'|'out'|null};
+export type Alias={id:string;raw_name:string;standard_name:string};
+export type Recurring={id:string;business_id:string;title:string;amount:number;direction:'in'|'out';day:number;start_date:string;end_date:string|null;frequency:'monthly'|'once'};
+export type SourceDetails={basic?:string;detail?:string;counterparty?:string;record?:string;memo?:string;note?:string;provenance?:{sheet:string;row:number;url?:string}};
+export type Transaction={id:string;business_id:string;account_id:string;upload_id:string|null;txn_date:string;txn_time?:string|null;source_sheet?:string|null;source_row?:number|null;source_details?:SourceDetails|null;amount:number;direction:'in'|'out';description:string;raw_gwamok:string;category_id:string|null;is_internal:boolean;balance:number|null;tax_invoice:boolean;dedup_hash:string;manually_classified:boolean;transfer_fee_amount?:number;transfer_fee_category_id?:string|null};
+export type Upload={id:string;account_id:string;filename:string;storage_path:string;success_count:number;duplicate_count:number;error_count:number;created_at:string;errors:{row:number;message:string}[]};
+export type IntercoLink={id:string;out_transaction_id:string;in_transaction_id:string};
+export type Audit={id:string;action:string;detail:string;created_at:string};
+export type MerchantNote={id:string;account_id:string;direction:'in'|'out';subject_key:string;label:string;memo:string;version:number;updated_at:string};
+export type Dataset={notes:MerchantNote[];businesses:Business[];accounts:Account[];categories:Category[];rules:Rule[];aliases:Alias[];recurring:Recurring[];transactions:Transaction[];uploads:Upload[];links:IntercoLink[];audit:Audit[];balance_snapshots?:AccountBalanceSnapshot[];bank_plan_actuals?:BankPlanActual[];bank_plan_coverage?:BankPlanCoverage[];cash_plan_series?:CashPlanSeries[];cash_plan_series_revisions?:CashPlanSeriesRevision[]};
+export const emptyDataset:Dataset={notes:[],businesses:[],accounts:[],categories:[],rules:[],aliases:[],recurring:[],transactions:[],uploads:[],links:[],audit:[]};
+export const resources={notes:'fd_merchant_notes',businesses:'fd_businesses',accounts:'fd_accounts',categories:'fd_categories',rules:'fd_category_rules',aliases:'fd_gwamok_aliases',recurring:'fd_recurring_items',transactions:'fd_transactions',uploads:'fd_uploads',links:'fd_inter_company_links',audit:'fd_audit_log'} as const;

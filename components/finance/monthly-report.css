@@ -1,0 +1,95 @@
+.monthly-report{display:grid;gap:16px;color:var(--foreground)}
+.monthly-report>.panel,.monthly-report-kpis>.panel{margin-bottom:0}
+.monthly-report-toolbar{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 20px}
+.monthly-report-toolbar h2{display:inline;font-size:19px;font-weight:750;letter-spacing:-.5px}
+.monthly-report-toolbar p{margin-top:8px;color:var(--muted-foreground);font-size:12px}
+.monthly-report-draft{display:inline-block;margin-right:10px;padding:4px 8px;border-radius:6px;background:#eaf0ff;color:#315ce6;font-size:11px;font-weight:700;vertical-align:3px}
+.monthly-report-month{display:flex;align-items:center;gap:8px;font-size:12px;white-space:nowrap}
+.monthly-report-month input{width:166px}
+.monthly-report-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.monthly-report-kpis article{padding:17px 20px;min-width:0}
+.monthly-report-kpis article>span{font-size:12px;color:var(--muted-foreground)}
+.monthly-report-kpis article>strong{display:flex;gap:5px;align-items:baseline;flex-wrap:wrap;font-size:clamp(19px,1.65vw,27px);line-height:1.4;margin:10px 0 6px;font-variant-numeric:tabular-nums;letter-spacing:-.6px}
+.monthly-report-kpis article>strong small{font-size:12px;font-weight:500}
+.monthly-report-kpis p{font-size:11px;color:var(--muted-foreground)}
+.monthly-report-income{color:#00886b}
+.monthly-report-kpis .monthly-report-forecast{background:#f3f5ff;border-color:#dbe2ff;color:#254eb9}
+.monthly-report-amount{border:0;background:transparent;padding:1px 0;color:inherit;cursor:pointer;font:inherit;font-variant-numeric:tabular-nums;border-bottom:1px dotted #acbddc;text-align:right;white-space:nowrap}
+.monthly-report-amount:hover{color:#2859e2;border-bottom-color:currentColor}
+.monthly-report-amount:focus-visible{outline:2px solid #3564ed;outline-offset:3px;border-radius:2px}
+.monthly-report-zero{color:#8893a8;font-variant-numeric:tabular-nums}
+.monthly-report-load{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 18px;border:1px solid #e9dbb1;background:#fffbef;border-radius:9px;font-size:12px;color:#715718}
+.monthly-report-pending{font-size:11px;color:#957533}
+.monthly-report-table-scroll{overflow:auto;max-width:100%;border-top:1px solid var(--border)}
+.monthly-report-table{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;font-variant-numeric:tabular-nums;min-width:760px}
+.monthly-report-table th,.monthly-report-table td{padding:13px 16px;border-bottom:1px solid var(--border);text-align:right;vertical-align:middle}
+.monthly-report-table th:first-child{position:sticky;left:0;z-index:1;text-align:left;min-width:192px;max-width:220px;background:var(--background)}
+.monthly-report-table thead th{font-size:12px;background:#f6f8fc;white-space:normal;min-width:140px}
+.monthly-report-table thead th:first-child{background:#f6f8fc;z-index:2}
+.monthly-report-table small{display:block;color:var(--muted-foreground);font-size:10px;font-weight:400;line-height:1.5;margin-top:3px}
+.monthly-report-business{display:flex;align-items:center;justify-content:flex-end;gap:5px;line-height:1.6}
+.monthly-report-business i{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.monthly-report-table .monthly-report-total{background:#f5f7fd;font-weight:700}
+.monthly-report-ratio-legend{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px 16px;padding:0 20px 12px;color:var(--muted-foreground);font-size:11px;line-height:1.6}
+.monthly-report-ratio-legend strong{font-weight:600;color:var(--foreground)}
+.monthly-report-table .monthly-report-cost-ratio{display:block;margin-top:4px;color:var(--muted-foreground);font-size:11px;font-weight:400;line-height:1.6;white-space:nowrap}
+.monthly-report-cost-ratio strong{font-weight:600;color:var(--foreground)}
+.monthly-report-cost-ratio strong.monthly-report-cost-ratio-exceeded{color:var(--destructive)}
+.monthly-report-sales-row{color:#00886b}
+.monthly-report-table .monthly-report-subtotal th,.monthly-report-table .monthly-report-subtotal td{background:#f4f6fa;font-weight:700;border-top:1px solid #d9e0eb}
+.monthly-report-table .monthly-report-plan-row th,.monthly-report-table .monthly-report-plan-row td{padding-top:18px;font-weight:700}
+.monthly-report-table .monthly-report-subrow th{padding-left:28px;font-weight:400;color:var(--muted-foreground)}
+.monthly-report-table .monthly-report-subrow td{font-size:11px;color:var(--muted-foreground)}
+.monthly-report-table .monthly-report-forecast-row th,.monthly-report-table .monthly-report-forecast-row td{background:#edf1fd;font-weight:750;color:#264a9f;border-top:1px solid #d4def6}
+.monthly-report-table-note{font-size:11px;line-height:1.7;color:var(--muted-foreground);padding:13px 20px}
+.monthly-report-benchmark-note{padding-bottom:0}
+.monthly-report-benchmark-note a{color:var(--foreground);text-decoration:underline;text-underline-offset:3px}
+.monthly-report-other-income{display:flex;gap:20px;align-items:center;justify-content:space-between;padding:18px 22px;font-size:13px}
+.monthly-report-other-income p{margin-top:5px;color:var(--muted-foreground);font-size:12px}
+.monthly-report-other-income>.monthly-report-amount{font-weight:700;font-size:18px}
+.monthly-report-checks{padding:0 20px}
+.monthly-report-checks article{display:flex;align-items:flex-start;gap:12px;padding:16px 0;border-top:1px solid var(--border)}
+.monthly-report-checks article>svg{color:#ae7a17;margin-top:2px;flex-shrink:0}
+.monthly-report-checks article>div{flex:1;min-width:0}
+.monthly-report-checks strong{font-size:12px;font-weight:650}
+.monthly-report-checks p{margin-top:5px;color:var(--muted-foreground);font-size:12px;line-height:1.7}
+.monthly-report-no-checks{padding:0 20px 20px;font-size:12px;color:var(--muted-foreground)}
+.monthly-report-notes{padding:16px 20px;color:var(--muted-foreground);font-size:12px;line-height:1.8}.monthly-report-notes summary{display:flex;align-items:center;gap:8px;color:var(--foreground);font-size:13px;font-weight:600;cursor:pointer}.monthly-report-notes summary::after{content:"＋";margin-left:auto;font-size:15px;font-weight:400}.monthly-report-notes[open] summary::after{content:"−"}.monthly-report-notes>div{padding-top:8px}.monthly-report-notes summary:focus-visible,.monthly-report-method summary:focus-visible{outline:2px solid var(--primary);outline-offset:4px;border-radius:2px}.monthly-report-method{padding:9px 20px 14px;color:var(--muted-foreground);font-size:11px;line-height:1.7}.monthly-report-method summary{width:fit-content;cursor:pointer;color:var(--foreground)}.monthly-report-method>div{display:grid;gap:7px;margin-top:9px;max-width:960px}
+.monthly-report-notes>svg{flex-shrink:0;color:#4263a0;margin-top:2px}
+.monthly-report-notes strong{color:var(--foreground);font-size:13px}
+.monthly-report-notes ul{list-style:disc;padding-left:17px;margin:8px 0}
+.monthly-report-notes a{color:#315fd3;text-decoration:underline;text-underline-offset:3px}
+.monthly-report-dialog{width:min(1140px,calc(100vw - 32px))!important;max-width:none!important;max-height:calc(100dvh - 40px);display:flex;flex-direction:column;gap:14px;padding:24px}
+.monthly-report-dialog-heading{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.monthly-report-dialog-heading h2{line-height:1.5}
+.monthly-report-dialog-heading button{flex-shrink:0}
+.monthly-report-detail-scroll{overflow:auto;min-height:0;max-height:58dvh;border:1px solid var(--border);border-radius:6px}
+.monthly-report-detail-table{width:100%;min-width:730px;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.monthly-report-detail-table th{position:sticky;top:0;z-index:1;background:#f5f7fc;text-align:left;white-space:nowrap;font-size:11px;color:#4a5e7f}
+.monthly-report-detail-table th,.monthly-report-detail-table td{padding:12px;border-bottom:1px solid var(--border);vertical-align:top}
+.monthly-report-detail-table th:last-child{text-align:right}
+.monthly-report-detail-table td:first-child{min-width:105px;white-space:nowrap}
+.monthly-report-detail-table td:nth-child(2){min-width:150px}
+.monthly-report-detail-table td:nth-child(3){min-width:220px;overflow-wrap:anywhere}
+.monthly-report-detail-table strong{font-weight:600}
+.monthly-report-detail-table small{display:block;font-size:10px;color:var(--muted-foreground);line-height:1.6;margin-top:4px;max-width:420px;white-space:normal}
+.monthly-report-detail-table .monthly-report-number{text-align:right;white-space:nowrap;font-weight:650}
+.monthly-report-detail-table .monthly-report-number small{margin:0 0 3px;text-align:right}
+.monthly-report-detail-total{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--muted-foreground)}
+.monthly-report-detail-total strong{font-size:18px;color:var(--foreground);font-variant-numeric:tabular-nums}
+.monthly-report-detail-table .monthly-report-fee{color:#3162b8}
+.monthly-report-warning{color:#9a711b}
+.monthly-report-dialog-check{padding:12px 15px;background:#fffaee;color:#7d5e22;border-radius:6px;font-size:12px;line-height:1.7}
+.monthly-report-forecast-detail{display:grid;gap:22px;min-height:0;overflow:auto}
+.monthly-report-forecast-detail section h3{display:flex;gap:12px;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;padding-bottom:10px}
+.monthly-report-forecast-detail .monthly-report-detail-scroll{max-height:35dvh}
+.monthly-report-dialog-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:10px;font-size:11px;color:var(--muted-foreground)}
+.monthly-report-dialog-footer>div{display:flex;gap:7px}
+.monthly-report-empty{font-size:12px;color:var(--muted-foreground);padding:12px}
+.dark .monthly-report-draft,.dark .monthly-report-kpis .monthly-report-forecast,.dark .monthly-report-table .monthly-report-forecast-row th,.dark .monthly-report-table .monthly-report-forecast-row td{background:#1e2c4a;color:#b9ccff;border-color:#354467}
+.dark .monthly-report-table thead th,.dark .monthly-report-table thead th:first-child,.dark .monthly-report-table .monthly-report-total,.dark .monthly-report-table .monthly-report-subtotal th,.dark .monthly-report-table .monthly-report-subtotal td,.dark .monthly-report-detail-table th{background:#202b3e;color:#c6d3eb}
+.dark .monthly-report-income,.dark .monthly-report-sales-row{color:#60ceb2}
+.dark .monthly-report-load,.dark .monthly-report-dialog-check{background:#352e1e;border-color:#5a4b24;color:#e5c581}
+@media(max-width:1000px){.monthly-report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.monthly-report-kpis article>strong{font-size:24px}}
+@media(max-width:640px){.monthly-report-toolbar{align-items:flex-start;flex-direction:column;padding:18px}.monthly-report-toolbar h2{font-size:17px}.monthly-report-kpis{gap:10px}.monthly-report-kpis article{padding:15px}.monthly-report-kpis article>strong{font-size:19px}.monthly-report-checks article{flex-wrap:wrap}.monthly-report-checks article>button{margin-left:29px}.monthly-report-table th:first-child{min-width:158px;max-width:175px}.monthly-report-dialog{padding:16px;max-height:calc(100dvh - 24px)}.monthly-report-dialog-heading h2{font-size:15px}.monthly-report-dialog-footer{align-items:flex-start}.monthly-report-dialog-footer>span{max-width:45%}.monthly-report-other-income{align-items:flex-start;flex-direction:column}.monthly-report-notes{padding:18px}}
+@media print{.monthly-report-month,.monthly-report-checks button{display:none}.monthly-report-table-scroll{overflow:visible}.monthly-report-table{font-size:9px;min-width:0}.monthly-report-table th,.monthly-report-table td{padding:8px}.monthly-report-table th:first-child{position:static;min-width:120px}.monthly-report-amount{border-bottom:0}.monthly-report-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.monthly-report-kpis article>strong{font-size:16px}.monthly-report-checks article,.monthly-report-kpis article{break-inside:avoid}}
