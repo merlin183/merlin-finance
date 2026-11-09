@@ -76,4 +76,6 @@ npm run dev
 
 [운영·계산 계약](docs/OPERATING_RULES.md), [개발 가이드](docs/DEVELOPMENT.md), [기여 안내](CONTRIBUTING.md), [보안 제보](SECURITY.md)를 참고하세요. 변경 후 관련 테스트와 `npm test`, `npm run doctor`, `npm run build`를 확인합니다. CI는 `main` push와 pull request에서 같은 검증을 실행합니다.
 
+공개판의 독립 변경을 보존하며 공통 기능을 가져오는 절차와 한계는 [업스트림 동기화 안내](docs/UPSTREAM_SYNC.md)를 참고하세요.
+
 프로젝트 자체 코드는 [MIT](LICENSE)로 제공합니다. 의존성과 포함된 외부 코드는 각자의 라이선스를 유지합니다. [서드파티 고지](THIRD_PARTY_NOTICES.md)와 [잠금 파일 기준 의존성 목록](docs/DEPENDENCY_LICENSES.md)을 함께 확인하세요.
