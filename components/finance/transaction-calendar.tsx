@@ -1,4 +1,6 @@
 "use client";
+import {useFinancialVisibility,FinancialValue,FinancialText} from './financial-visibility';
+
 
 import {useMemo,useRef,useState} from 'react';
 import {ChevronLeft,ChevronRight,X} from 'lucide-react';
@@ -42,6 +44,7 @@ export function TransactionCalendar({data,rows,range,onRangeChange}:{
  range:DateRange;
  onRangeChange:(range:DateRange)=>void;
 }){
+ const {privateText,privateValue,amountsVisible}=useFinancialVisibility();
  const month=(parseFinanceDate(range.to)?range.to:today()).slice(0,7);
  const monthRange=calendarMonthRange(month);
  const calendar=useMemo(()=>{
@@ -59,7 +62,7 @@ export function TransactionCalendar({data,rows,range,onRangeChange}:{
  const monthlyBusinesses=useMemo(()=>groupBusinessTransactions(calendar.transactions,businesses),[calendar.transactions,businesses]);
  const selectedBusinesses=selected?dailyBusinesses.get(selected.date)||[]:[];
  const amountCharacters=[...dailyBusinesses.values()].reduce((maximum,groups)=>groups.reduce((length,group)=>Math.max(length,amountFormat.format(group.expense).length,amountFormat.format(group.income).length),maximum),1);
- const calendarMinWidth=Math.max(700,(amountCharacters*8+24)*7);
+ const calendarMinWidth=amountsVisible?Math.max(700,(amountCharacters*8+24)*7):700;
  const accounts=useMemo(()=>new Map(data.accounts.map(account=>[account.id,account.name])),[data.accounts]);
  const categories=useMemo(()=>new Map(data.categories.map(category=>[category.id,category.name])),[data.categories]);
  const partialMonth=range.from>monthRange.from||range.to<monthRange.to;
@@ -87,9 +90,9 @@ export function TransactionCalendar({data,rows,range,onRangeChange}:{
    <p>조회기간 {range.from} ~ {range.to} 중 {monthLabel} · 현재 필터 기준</p>
    {partialMonth&&<Button type="button" size="xs" variant="ghost" onClick={()=>changeMonth(month)}>한 달 전체 보기</Button>}
   </div>
-  <dl className="transaction-calendar-totals" aria-label={`${monthLabel} 합계`}>
-   <div><dt>{Number(month.slice(5,7))}월 출금 합계</dt><dd className="transaction-calendar-expense">{won(calendar.expense)}</dd></div>
-   <div><dt>{Number(month.slice(5,7))}월 입금 합계</dt><dd className="transaction-calendar-income">{won(calendar.income)}</dd></div>
+  <dl className="transaction-calendar-totals" aria-label={privateText(String(`${monthLabel} 합계`))}>
+   <div><dt>{Number(month.slice(5,7))}월 출금 합계</dt><dd className="transaction-calendar-expense"><FinancialValue value={won(calendar.expense)}/></dd></div>
+   <div><dt>{Number(month.slice(5,7))}월 입금 합계</dt><dd className="transaction-calendar-income"><FinancialValue value={won(calendar.income)}/></dd></div>
    <div><dt>거래 건수</dt><dd>{calendar.transactions.length.toLocaleString()}건</dd></div>
   </dl>
   <div className="transaction-calendar-legend">
@@ -111,19 +114,19 @@ export function TransactionCalendar({data,rows,range,onRangeChange}:{
     const visibleBusinesses=dayBusinesses.slice(0,2);
     return <button type="button" key={day.date} className={`transaction-calendar-day${day.date===currentToday?' is-today':''}${!inRange?' is-outside':''}${index%7===0||index%7===6?' is-weekend':''}`}
      disabled={!inRange} aria-haspopup="dialog" aria-expanded={selected?.date===day.date}
-     aria-label={`${day.date} · ${inRange?`${day.transactions.length}건 · 출금 ${won(day.expense)} · 입금 ${won(day.income)}${dayBusinesses.map(business=>` · ${business.name} 출금 ${won(business.expense)}, 입금 ${won(business.income)}`).join('')} · 상세보기`:'조회기간 밖'}`}
+     aria-label={privateText(String(`${day.date} · ${inRange?`${day.transactions.length}건 · 출금 ${privateValue(won(day.expense))} · 입금 ${privateValue(won(day.income))}${dayBusinesses.map(business=>` · ${business.name} 출금 ${privateValue(won(business.expense))}, 입금 ${privateValue(won(business.income))}`).join('')} · 상세보기`:'조회기간 밖'}`))}
      onClick={event=>{triggerRef.current=event.currentTarget;setSelectedDate(day.date);}}>
      <span className="transaction-calendar-day-heading"><time dateTime={day.date}>{Number(day.date.slice(8,10))}</time>{day.date===currentToday&&<span>오늘</span>}</span>
      {inRange?<>
-      {dayBusinesses.length?<span className="transaction-calendar-day-businesses" aria-hidden="true">{visibleBusinesses.map(business=><span key={business.id} className="transaction-calendar-day-business" title={`${business.name} · 출금 ${won(business.expense)} · 입금 ${won(business.income)}`}>
+      {dayBusinesses.length?<span className="transaction-calendar-day-businesses" aria-hidden="true">{visibleBusinesses.map(business=><span key={business.id} className="transaction-calendar-day-business" title={privateText(String(`${business.name} · 출금 ${privateValue(won(business.expense))} · 입금 ${privateValue(won(business.income))}`))}>
        <span className="transaction-calendar-business-label"><i style={{background:business.color}}/>{business.name}</span>
        <span className="transaction-calendar-day-totals">
-        <span className="transaction-calendar-expense"><span className="transaction-calendar-exact-amount">{amountFormat.format(business.expense)}</span></span>
-        <span className="transaction-calendar-income"><span className="transaction-calendar-exact-amount">{amountFormat.format(business.income)}</span></span>
+        <span className="transaction-calendar-expense"><span className="transaction-calendar-exact-amount"><FinancialValue value={amountFormat.format(business.expense)}/></span></span>
+        <span className="transaction-calendar-income"><span className="transaction-calendar-exact-amount"><FinancialValue value={amountFormat.format(business.income)}/></span></span>
        </span>
       </span>)}</span>:<span className="transaction-calendar-day-totals" aria-hidden="true">
-       <span className="transaction-calendar-expense" title={`출금 ${won(day.expense)}`}><span className="transaction-calendar-exact-amount">{amountFormat.format(day.expense)}</span></span>
-       <span className="transaction-calendar-income" title={`입금 ${won(day.income)}`}><span className="transaction-calendar-exact-amount">{amountFormat.format(day.income)}</span></span>
+       <span className="transaction-calendar-expense" title={privateText(String(`출금 ${privateValue(won(day.expense))}`))}><span className="transaction-calendar-exact-amount"><FinancialValue value={amountFormat.format(day.expense)}/></span></span>
+       <span className="transaction-calendar-income" title={privateText(String(`입금 ${privateValue(won(day.income))}`))}><span className="transaction-calendar-exact-amount"><FinancialValue value={amountFormat.format(day.income)}/></span></span>
       </span>}
       {dayBusinesses.length>visibleBusinesses.length&&<span className="transaction-calendar-business-more">+{dayBusinesses.length-visibleBusinesses.length}개 사업자</span>}
       {day.transactions.length>0&&<span className="transaction-calendar-detail-link">상세보기<span> · {day.transactions.length.toLocaleString()}건</span></span>}
@@ -139,11 +142,11 @@ export function TransactionCalendar({data,rows,range,onRangeChange}:{
     <DialogClose asChild><Button type="button" variant="ghost" size="icon-xs" className="transaction-calendar-dialog-close" aria-label="닫기"><X size={16}/></Button></DialogClose>
     <DialogHeader>
      <DialogTitle>{selected?`${dateLabel(selected.date)} 거래내역`:'날짜별 거래내역'}</DialogTitle>
-     <DialogDescription>{selected?`${selected.transactions.length.toLocaleString()}건 · 출금 ${won(selected.expense)} · 입금 ${won(selected.income)}`:'선택한 날짜의 거래내역입니다.'}</DialogDescription>
+     <DialogDescription>{selected?`${selected.transactions.length.toLocaleString()}건 · 출금 ${privateValue(won(selected.expense))} · 입금 ${privateValue(won(selected.income))}`:'선택한 날짜의 거래내역입니다.'}</DialogDescription>
     </DialogHeader>
     <div className="transaction-calendar-dialog-body">
-     {selectedBusinesses.length?selectedBusinesses.map(business=><section key={business.id} className="transaction-calendar-business-group" aria-label={`${business.name} 거래내역`}>
-      <header className="transaction-calendar-business-group-heading"><h3><i aria-hidden="true" style={{background:business.color}}/>{business.name}<small>{business.transactions.length.toLocaleString()}건</small></h3><p><span className="transaction-calendar-expense">출금 {won(business.expense)}</span><span className="transaction-calendar-income">입금 {won(business.income)}</span></p></header>
+     {selectedBusinesses.length?selectedBusinesses.map(business=><section key={business.id} className="transaction-calendar-business-group" aria-label={privateText(String(`${business.name} 거래내역`))}>
+      <header className="transaction-calendar-business-group-heading"><h3><i aria-hidden="true" style={{background:business.color}}/>{business.name}<small>{business.transactions.length.toLocaleString()}건</small></h3><p><span className="transaction-calendar-expense">출금 <FinancialValue value={won(business.expense)}/></span><span className="transaction-calendar-income">입금 <FinancialValue value={won(business.income)}/></span></p></header>
       <ul className="transaction-calendar-transactions">{business.transactions.map(transaction=><CalendarTransaction key={transaction.id} data={data} transaction={transaction} business={business.name} account={accounts.get(transaction.account_id)||'계좌 미설정'} category={categories.get(transaction.category_id||'')||'미매핑'}/>)}</ul>
      </section>):<p className="transaction-calendar-empty">선택한 날짜에 조건에 맞는 거래가 없습니다.</p>}
     </div>
@@ -160,10 +163,10 @@ function CalendarTransaction({data,transaction,business,account,category}:{data:
  const isExpense=transaction.direction==='out';
  return <li className="transaction-calendar-transaction">
   <div className="transaction-calendar-transaction-main">
-   <div><div className="transaction-calendar-transaction-context"><span>{business}</span><span>{account}</span>{transaction.txn_time&&<time>{transaction.txn_time}</time>}{transaction.is_internal&&<span>내부거래</span>}</div><strong className="transaction-calendar-transaction-title">{transactionTitle(transaction)}</strong>{counterparty&&transaction.description&&counterparty!==transaction.description&&<p className="transaction-calendar-description">적요 · {transaction.description}</p>}<span className="transaction-calendar-category">{category}</span><TransferFeeBreakdown data={data} transaction={transaction}/></div>
-   <div className={isExpense?'transaction-calendar-amount transaction-calendar-expense':'transaction-calendar-amount transaction-calendar-income'}><span>{isExpense?'출금':'입금'}</span><strong>{won(transaction.amount)}</strong>{transaction.balance!==null&&<small>거래 후 잔액 {won(transaction.balance)}</small>}</div>
+   <div><div className="transaction-calendar-transaction-context"><span>{business}</span><span><FinancialText value={account}/></span>{transaction.txn_time&&<time>{transaction.txn_time}</time>}{transaction.is_internal&&<span>내부거래</span>}</div><strong className="transaction-calendar-transaction-title"><FinancialText value={String((transactionTitle(transaction))||'')}/></strong>{counterparty&&transaction.description&&counterparty!==transaction.description&&<p className="transaction-calendar-description">적요 · <FinancialText value={String((transaction.description)||'')}/></p>}<span className="transaction-calendar-category">{category}</span><TransferFeeBreakdown data={data} transaction={transaction}/></div>
+   <div className={isExpense?'transaction-calendar-amount transaction-calendar-expense':'transaction-calendar-amount transaction-calendar-income'}><span>{isExpense?'출금':'입금'}</span><strong><FinancialValue value={won(transaction.amount)}/></strong>{transaction.balance!==null&&<small>거래 후 잔액 <FinancialValue value={won(transaction.balance)}/></small>}</div>
   </div>
-  {entries.length>0&&<dl className="transaction-calendar-source">{entries.map(entry=><div key={entry.label}><dt>{entry.label}</dt><dd>{entry.value}</dd></div>)}</dl>}
-  {provenance&&<small className="transaction-calendar-origin">원본 · {provenance.sheet} · {provenance.row}행</small>}
+  {entries.length>0&&<dl className="transaction-calendar-source">{entries.map(entry=><div key={entry.label}><dt><FinancialText value={String((entry.label)||'')}/></dt><dd><FinancialText value={String((entry.value)||'')}/></dd></div>)}</dl>}
+  {provenance&&<small className="transaction-calendar-origin">원본 · <FinancialText value={String((provenance.sheet)??'')}/> · {provenance.row}행</small>}
  </li>;
 }

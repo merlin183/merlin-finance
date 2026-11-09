@@ -1,4 +1,5 @@
 "use client";
+import {FinancialValue,FinancialText} from './financial-visibility';
 
 import {useCallback,useEffect,useRef,useState,type RefObject} from 'react';
 import {Check,LoaderCircle,X} from 'lucide-react';
@@ -60,21 +61,21 @@ function ConfirmationBody({row,business,accountName,asOf,saving,loadError,onRelo
   try{
    const change:CashPlanEditChange=clear?cashPlanPaymentConfirmationChange(originalItem,null):planned?cashPlanPlannedPaymentChange(originalItem,plannedPaymentDraftValues(next)):cashPlanPaymentConfirmationChange(originalItem,paymentConfirmationDraftValues(next));
    await onSave([change]);
-   toast.success(clear?'직접 출금 확인을 취소했습니다.':planned?'예정 금액을 저장하고 자금계획을 다시 계산했습니다.':'출금 확인을 저장하고 남은 지출·필요자금을 다시 계산했습니다.');
+   toast.success(<FinancialText value={String(clear?'직접 출금 확인을 취소했습니다.':planned?'예정 금액을 저장하고 자금계획을 다시 계산했습니다.':'출금 확인을 저장하고 남은 지출·필요자금을 다시 계산했습니다.')}/>);
    onClose();
   }catch(cause){setError(cause instanceof Error?cause.message:'저장하지 못했습니다. 입력값은 유지했습니다.');}
   finally{busy.current=false;setSubmitting(false);}
  }
  return <>
-  <DialogHeader className="payment-confirmation-heading"><div><DialogTitle>{planned?'예정 금액 수정':'실제 출금 확인'}</DialogTitle><DialogDescription>{business.name} · {row.title}</DialogDescription></div><Button type="button" variant="ghost" size="icon" aria-label="출금 확인 닫기" disabled={pending} onClick={close}><X size={18}/></Button></DialogHeader>
+  <DialogHeader className="payment-confirmation-heading"><div><DialogTitle>{planned?'예정 금액 수정':'실제 출금 확인'}</DialogTitle><DialogDescription>{business.name} · <FinancialText value={row.title}/></DialogDescription></div><Button type="button" variant="ghost" size="icon" aria-label="출금 확인 닫기" disabled={pending} onClick={close}><X size={18}/></Button></DialogHeader>
   <div className="payment-confirmation-body" aria-busy={pending}>
    <PaymentConfirmationModePicker mode={mode} pending={pending} onChange={selectMode}/>
-   <dl className="payment-confirmation-plan"><div><dt>계획 금액</dt><dd>{digits(originalItem.amount)}원</dd></div><div><dt>출금 계좌</dt><dd>{accountName||'계좌 미지정'}</dd></div></dl>
+   <dl className="payment-confirmation-plan"><div><dt>계획 금액</dt><dd><FinancialValue value={digits(originalItem.amount)}/>원</dd></div><div><dt>출금 계좌</dt><dd><FinancialText value={accountName||'계좌 미지정'}/></dd></div></dl>
    <p className="payment-confirmation-help">{planned?'예정일과 월 계획 금액을 수정합니다. 실제 출금 완료 처리가 아니며 통장 잔액·거래내역은 바뀌지 않습니다.':'이번 달 이 품목의 출금을 모두 합해 입력하세요. 이미 반영된 출금도 포함한 총액이며 통장 잔액과 거래내역은 바뀌지 않습니다.'}</p>
    {!planned&&draft.date>asOf&&<p className="payment-confirmation-help">미래 예정일·금액은 ‘예정 금액 수정’에서 저장하세요.</p>}
-   {loadError&&<div className="payment-confirmation-error" role="alert"><p>{loadError} 저장된 확인 상태를 먼저 다시 불러와 주세요.</p><Button type="button" variant="outline" size="sm" disabled={pending} onClick={()=>void onReload()}>상태 다시 불러오기</Button></div>}
+   {loadError&&<div className="payment-confirmation-error" role="alert"><p><FinancialText value={loadError}/> 저장된 확인 상태를 먼저 다시 불러와 주세요.</p><Button type="button" variant="outline" size="sm" disabled={pending} onClick={()=>void onReload()}>상태 다시 불러오기</Button></div>}
    {stale&&<p className="payment-confirmation-error" role="alert">다른 관리자가 이 항목을 변경했습니다. 입력값은 유지했습니다. 최신 내용을 확인하려면 닫은 뒤 다시 열어 주세요.</p>}
-   {error&&<p className="payment-confirmation-error" role="alert">{error}</p>}
+   {error&&<p className="payment-confirmation-error" role="alert"><FinancialText value={error}/></p>}
    {discardPrompt&&<div className="payment-confirmation-error" role="alert"><p>저장하지 않은 입력값이 있습니다.</p><Button type="button" variant="outline" size="sm" onClick={()=>setDiscardPrompt(false)}>계속 입력</Button><Button type="button" variant="outline" size="sm" onClick={onClose}>입력 취소하고 닫기</Button></div>}
    <form id="payment-confirmation-form" noValidate onSubmit={event=>{event.preventDefault();void commit();}}>
     <PaymentConfirmationFields key={mode} mode={mode} draft={draft} pending={pending} month={month} lastActualDate={lastDate} suggestedDate={!row.confirmation&&!!row.date} dateInput={dateInput} onChange={change}/>

@@ -1,4 +1,6 @@
 "use client";
+import {FinancialText} from './financial-visibility';
+
 
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {ArrowUpRight,CheckCircle2,LoaderCircle,RefreshCw,TriangleAlert} from 'lucide-react';
@@ -99,14 +101,14 @@ export function SheetSyncStatus({onRefresh,disabled=false}:{onRefresh:()=>Promis
  return <section className="sheet-sync" aria-label="계정관리봇 자동 연동" aria-busy={loading||running}>
   <div className="sheet-sync-heading"><div><h3>계정관리봇 자동 연동</h3><p>슬랙에 올린 엑셀을 봇이 계정과목별로 정리하면, Google 스프레드시트의 거래를 멀린 대시보드에 반영합니다.</p></div><div className="sheet-sync-actions"><Button type="button" variant="outline" size="sm" disabled={busy} onClick={()=>void refreshStatus()}><RefreshCw size={15} className={loading?'animate-spin':undefined}/>상태 새로고침</Button><Button type="button" size="sm" disabled={busy||!enabled} onClick={()=>void runSync()}>{running?<LoaderCircle size={15} className="animate-spin"/>:<RefreshCw size={15}/>} {running?'동기화 중…':'지금 동기화'}</Button></div></div>
   <p className="sheet-sync-cadence">{enabled?'5분마다 시트의 변경 사항을 자동으로 확인합니다. 화면을 닫아도 연동은 계속됩니다. 같은 거래는 반복해서 추가하지 않으며, 구분이 어려운 거래는 보류합니다.':loading?'자동 연동 상태를 불러오는 중입니다.':!status?.configured?'자동 연동 설정을 확인하고 있습니다.':'자동 연동이 꺼져 있습니다.'}</p>
-  {error&&<div className="gs-warning" role="alert"><TriangleAlert size={17}/><span>{error}</span></div>}
+  {error&&<div className="gs-warning" role="alert"><TriangleAlert size={17}/><span><FinancialText value={String((error)||'')}/></span></div>}
   {!!status?.sources.length&&<ul className="sheet-sync-sources">{status.sources.map(source=>{
    const link=sheetLink(source.source_url);
    const date=source.last_run_at?new Date(source.last_run_at):null;
    const timestamp=date&&!Number.isNaN(date.getTime())?date.toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):null;
-   return <li key={source.id}><div className="sheet-sync-source-heading"><strong>연결된 스프레드시트</strong><span className={source.enabled&&status.configured?'positive':'muted'}>{source.enabled?(status.configured?'자동 연동 켜짐':'설정 확인 필요'):'자동 연동 꺼짐'}</span></div>{link?<a className="sheet-sync-link" href={link} target="_blank" rel="noopener noreferrer" aria-label="자동 연동 원본 스프레드시트 열기">{link}<ArrowUpRight size={14}/></a>:<p className="sheet-sync-cadence">원본 스프레드시트 링크를 확인해주세요.</p>}<p className="sheet-sync-timestamp">마지막 실행: {timestamp?`${timestamp} (한국 시간)`:'아직 실행 기록이 없습니다.'}</p>{source.last_result&&<ResultCounts value={source.last_result}/>} {source.last_error&&<div className="gs-warning" role="alert"><TriangleAlert size={17}/><span>마지막 실행 오류: {errorMessage(source.last_error,'동기화를 완료하지 못했습니다. 시트 접근 권한과 연동 설정을 확인해주세요.')}</span></div>}</li>;
+   return <li key={source.id}><div className="sheet-sync-source-heading"><strong>연결된 스프레드시트</strong><span className={source.enabled&&status.configured?'positive':'muted'}><FinancialText value={String(source.enabled?(status.configured?'자동 연동 켜짐':'설정 확인 필요'):'자동 연동 꺼짐')}/></span></div>{link?<a className="sheet-sync-link" href={link} target="_blank" rel="noopener noreferrer" aria-label="자동 연동 원본 스프레드시트 열기">{link}<ArrowUpRight size={14}/></a>:<p className="sheet-sync-cadence">원본 스프레드시트 링크를 확인해주세요.</p>}<p className="sheet-sync-timestamp">마지막 실행: {timestamp?`${timestamp} (한국 시간)`:'아직 실행 기록이 없습니다.'}</p>{source.last_result&&<ResultCounts value={source.last_result}/>} {source.last_error&&<div className="gs-warning" role="alert"><TriangleAlert size={17}/><span>마지막 실행 오류: <FinancialText value={String((errorMessage(source.last_error,'동기화를 완료하지 못했습니다. 시트 접근 권한과 연동 설정을 확인해주세요.'))||'')}/></span></div>}</li>;
   })}</ul>}
   {result&&<div className="sheet-sync-complete" role="status"><p><CheckCircle2 size={17}/>동기화가 완료되었습니다.</p><ResultCounts value={result}/></div>}
-  {notice&&<p className="sheet-sync-cadence" role="status">{notice}</p>}
+  {notice&&<p className="sheet-sync-cadence" role="status"><FinancialText value={String((notice)||'')}/></p>}
  </section>;
 }

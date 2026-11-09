@@ -1,0 +1,24 @@
+.financial-visibility-toggle{display:inline-flex;align-items:center;gap:8px;flex-shrink:0;height:36px;padding:0 10px;border:1px solid #e4e9f1;border-radius:8px;background:#fff;color:#64748b;font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer;transition:background-color .15s,border-color .15s}
+.financial-visibility-toggle:hover{background:#f8fafd;border-color:#cbd5e1}
+.financial-visibility-toggle:focus-visible{outline:2px solid #3366ee;outline-offset:3px}
+.financial-visibility-toggle:disabled{cursor:wait}
+.financial-visibility-toggle[data-visible=true]>svg{color:#3366ee}
+.financial-visibility-switch{position:relative;display:flex;align-items:center;width:47px;height:22px;border-radius:12px;background:#cbd5e1;color:#334155;transition:background-color .15s}
+.financial-visibility-state{font-size:9px;font-weight:750;letter-spacing:.02em;margin-left:21px;line-height:1}
+.financial-visibility-thumb{position:absolute;width:16px;height:16px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #33415526;transition:transform .15s}
+.financial-visibility-toggle[data-visible=true] .financial-visibility-switch{background:#3366ee;color:#fff}
+.financial-visibility-toggle[data-visible=true] .financial-visibility-state{margin-left:7px}
+.financial-visibility-toggle[data-visible=true] .financial-visibility-thumb{transform:translateX(25px)}
+.financial-value-masked,.financial-input-masked{color:#94a3b8!important;-webkit-text-fill-color:#94a3b8!important;letter-spacing:.08em!important;font-variant-numeric:normal!important;text-decoration:none!important;white-space:nowrap}
+.financial-input-masked{cursor:default}
+/* Hand-drawn ranking bars also encode monetary proportions. */
+:root:has(.financial-visibility-toggle[data-visible=false]) .bar-track{visibility:hidden}
+.financial-chart-visible{width:100%;height:100%;min-width:0}
+.financial-chart-masked{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;height:100%;min-height:190px;background:repeating-linear-gradient(135deg,#f8fafc,#f8fafc 8px,#f4f7fb 8px,#f4f7fb 9px);color:#94a3b8;font-size:13px;border-radius:7px}
+.dark .financial-visibility-toggle{background:#141f31;border-color:#28334a;color:#b1bfd5}
+.dark .financial-visibility-toggle:hover{background:#1b2940}
+.dark .financial-visibility-toggle[data-visible=true]>svg{color:#86acff}
+.dark .financial-chart-masked{background:repeating-linear-gradient(135deg,#141f31,#141f31 8px,#192538 8px,#192538 9px)}
+@media(max-width:800px){.financial-visibility-label{display:none}.financial-visibility-toggle{gap:6px;padding:0 8px}}
+@media(max-width:600px){.topbar-actions:has(.financial-visibility-toggle){gap:7px}.financial-visibility-toggle{height:34px;padding:0 6px}.financial-visibility-switch{width:44px}.financial-visibility-toggle[data-visible=true] .financial-visibility-thumb{transform:translateX(22px)}}
+@media(prefers-reduced-motion:reduce){.financial-visibility-toggle,.financial-visibility-switch,.financial-visibility-thumb{transition:none}}

@@ -1,4 +1,6 @@
 "use client";
+import {FinancialText,useFinancialVisibility,FinancialValue} from './financial-visibility';
+
 
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {CreditCard,LoaderCircle,RefreshCw,TriangleAlert} from 'lucide-react';
@@ -30,6 +32,7 @@ function queryUrl(range:DateRange){return `/api/clobe/card-bills?startDate=${enc
 function rangeError(range:DateRange){return !isValidDateRange(range)?'시작일과 종료일을 확인해주세요.':range.to>addDays(range.from,92)?'한 번에 93일 이내로 조회해주세요.':'';}
 
 export function ClobeCardBillsPanel({data,asOf,biz,state,range}:{data:Dataset;asOf:string;biz:string;state:CashPlanEditState;range:DateRange}){
+ const {privateText}=useFinancialVisibility();
  const [open,setOpen]=useState(false),[period,setPeriod]=useState(range);
  const [response,setResponse]=useState<ClobeCardBillsResponse|null>(null),[drafts,setDrafts]=useState<Record<string,Draft>>({});
  const [companyBusinesses,setCompanyBusinesses]=useState<Map<string,string>>(new Map());
@@ -83,7 +86,7 @@ export function ClobeCardBillsPanel({data,asOf,biz,state,range}:{data:Dataset;as
    if(!changes.length){setNotice('이미 같은 결제일·청구금액으로 반영되어 있습니다. 중복으로 추가하지 않았습니다.');return;}
    await state.save(changes);
    setDrafts(current=>Object.fromEntries(Object.entries(current).map(([key,draft])=>[key,{...draft,selected:false,replacementKeys:[]}])));
-   const text='카드대금 계획을 교체했습니다. 지출 후 잔액·필요자금·달력에 반영됩니다.';setNotice(text);toast.success(text);
+   const text='카드대금 계획을 교체했습니다. 지출 후 잔액·필요자금·달력에 반영됩니다.';setNotice(text);toast.success(<FinancialText value={String(text)}/>);
   }catch(cause){setError(message(cause));}
   finally{busy.current=false;if(mounted.current)setApplying(false);}
  }
@@ -94,32 +97,32 @@ export function ClobeCardBillsPanel({data,asOf,biz,state,range}:{data:Dataset;as
   <div className="clobe-card-toolbar"><DateRangeControl label="카드 청구" value={period} onChange={changePeriod} validateRange={rangeError}/><Button variant="outline" disabled={loading||applying} onClick={()=>void load()}>{loading?<LoaderCircle size={16} className="animate-spin"/>:<RefreshCw size={16}/>}청구자료 조회</Button></div>
   <div className="clobe-card-body" aria-busy={loading||applying}>
    {loading&&<p role="status">클로브의 카드 청구자료를 확인하고 있습니다…</p>}
-   {error&&<p className="clobe-card-error" role="alert"><TriangleAlert size={16}/>{error} {!response&&<FinanceLink href="/upload">클로브 연결 확인</FinanceLink>}</p>}
-   {notice&&<p className="clobe-card-success" role="status">{notice}</p>}
+   {error&&<p className="clobe-card-error" role="alert"><TriangleAlert size={16}/><FinancialText value={String((error)||'')}/> {!response&&<FinanceLink href="/upload">클로브 연결 확인</FinanceLink>}</p>}
+   {notice&&<p className="clobe-card-success" role="status"><FinancialText value={String((notice)||'')}/></p>}
    {response&&<p className="clobe-card-note">최신 조회 {new Date(response.fetchedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})} · 카드사 재수집은 클로브에서 진행합니다. 조회 결과가 없거나 불명확하면 기존 계획을 유지합니다.</p>}
    {response&&!visibleCompanies.length&&<p>선택한 사업자에 확인된 클로브 연결이 없습니다. 전체 사업자에서 사업자 연결을 확인해주세요.</p>}
    {visibleCompanies.map(company=>{
     const eligible=company.bills.filter(bill=>bill.replaceable).length;
-    return <section className="clobe-card-company" key={company.id} aria-label={`${company.name} 카드 청구`}><header><h3>{company.name}</h3><span className={eligible?'clobe-card-badge':'clobe-card-muted'}>{eligible?`교체 가능 ${eligible}건`:'기존 카드대금 계획 유지'}</span></header>
-     {company.error&&<p className="clobe-card-error">{company.error}</p>}
-     {company.warnings.filter(warning=>warning!==company.scraping.error&&(company.bills.length>0||!warning.startsWith('조회 기간에 수집된 카드 청구가 없습니다.'))).map(warning=><p className="clobe-card-note" key={warning}>{warning}</p>)}
-     <p className="clobe-card-note">청구자료 수집 {company.scraping.lastCollectedAt||'시각 확인 필요'}{company.scraping.error?` · ${company.scraping.error}`:''}</p>
+    return <section className="clobe-card-company" key={company.id} aria-label={privateText(String(`${company.name} 카드 청구`))}><header><h3>{company.name}</h3><span className={eligible?'clobe-card-badge':'clobe-card-muted'}>{eligible?`교체 가능 ${eligible}건`:'기존 카드대금 계획 유지'}</span></header>
+     {company.error&&<p className="clobe-card-error"><FinancialText value={String((company.error)||'')}/></p>}
+     {company.warnings.filter(warning=>warning!==company.scraping.error&&(company.bills.length>0||!warning.startsWith('조회 기간에 수집된 카드 청구가 없습니다.'))).map(warning=><p className="clobe-card-note" key={warning}><FinancialText value={String((warning)||'')}/></p>)}
+     <p className="clobe-card-note">청구자료 수집 {company.scraping.lastCollectedAt||'시각 확인 필요'}<FinancialText value={String(company.scraping.error?` · ${company.scraping.error}`:'')}/></p>
      {!company.bills.length&&!company.error&&<p className="clobe-card-empty">이 기간의 청구자료가 없습니다. 기존 카드대금 계획을 유지합니다.</p>}
      {company.bills.map(bill=>{
       const draft=drafts[bill.key],saved=state.edits?.find(edit=>edit.id===bill.key),businessId=draft?.businessId||'';
       const candidates=candidatesByScope.get(`${businessId}/${bill.date.slice(0,7)}`)??[];
       return <article key={bill.key} className={`clobe-card-bill ${draft?.selected?'clobe-card-bill-selected':''}`}>
-       <div className="clobe-card-bill-head"><label>{bill.replaceable&&<input type="checkbox" aria-label={`${company.name} ${bill.date} ${bill.maskedCard} 계획 교체 선택`} checked={!!draft?.selected} disabled={loading||applying||!!saved?.excluded} onChange={event=>changeDraft(bill.key,{selected:event.target.checked})}/>}<span><strong>{bill.date}</strong><small>{bill.maskedCard} · {kindLabel[bill.kind]}{saved?' · 계획 반영됨':''}</small></span></label><strong>{bill.amount===null?'금액 확인 필요':won(bill.amount)}</strong></div>
-       {!bill.replaceable&&<p className="clobe-card-note">{bill.reason||'기존 계획 교체 대상이 아닙니다.'}</p>}
+       <div className="clobe-card-bill-head"><label>{bill.replaceable&&<input type="checkbox" aria-label={privateText(String(`${company.name} ${bill.date} ${bill.maskedCard} 계획 교체 선택`))} checked={!!draft?.selected} disabled={loading||applying||!!saved?.excluded} onChange={event=>changeDraft(bill.key,{selected:event.target.checked})}/>}<span><strong>{bill.date}</strong><small><FinancialText value={String((bill.maskedCard)||'')}/> · {kindLabel[bill.kind]}{saved?' · 계획 반영됨':''}</small></span></label><strong><FinancialValue value={bill.amount===null?'금액 확인 필요':won(bill.amount)}/></strong></div>
+       {!bill.replaceable&&<p className="clobe-card-note"><FinancialText value={String((bill.reason||'기존 계획 교체 대상이 아닙니다.')||'')}/></p>}
        {saved?.excluded&&<p className="clobe-card-note">이 청구 일정은 계획에서 제외되어 있습니다. 다시 동기화해도 자동 복원하지 않습니다.</p>}
-       {draft?.selected&&<div className="clobe-card-replace-form"><div className="clobe-card-link-fields"><label>멀린 사업자<select aria-label={`${bill.date} ${bill.maskedCard} 멀린 사업자`} value={businessId} disabled={applying||!!saved} onChange={event=>changeDraft(bill.key,{businessId:event.target.value,accountId:'',replacementKeys:[]})}><option value="">사업자 선택</option>{data.businesses.map(business=><option value={business.id} key={business.id}>{business.name}</option>)}</select></label><label>출금계좌<select aria-label={`${bill.date} ${bill.maskedCard} 출금계좌`} value={draft.accountId} disabled={applying||!businessId} onChange={event=>changeDraft(bill.key,{accountId:event.target.value})}><option value="">출금계좌 선택</option>{data.accounts.filter(account=>account.business_id===businessId).map(account=><option value={account.id} key={account.id}>{[account.name,account.bank,account.masked_number].filter(Boolean).join(' · ')}</option>)}</select></label></div>
-        {!saved&&<fieldset><legend>교체할 기존 카드대금 계획 · 선택한 항목은 해당 월에 제외됩니다</legend>{candidates.length?candidates.map(item=><label className="clobe-card-old-plan" key={item.key}><input type="checkbox" checked={draft.replacementKeys.includes(item.key)} disabled={applying} onChange={event=>changeDraft(bill.key,{replacementKeys:event.target.checked?[...draft.replacementKeys,item.key]:draft.replacementKeys.filter(key=>key!==item.key)})}/><span>{item.date||'날짜 미정'} · {item.title}<small>남은 계획 {won(item.remainingAmount)} · 전체 예산 {won(item.amount)}</small></span></label>):<p className="clobe-card-note">이 사업자·월에 교체할 카드대금 계획이 없습니다. 다른 계획을 임의로 제외하지 않습니다.</p>}</fieldset>}
+       {draft?.selected&&<div className="clobe-card-replace-form"><div className="clobe-card-link-fields"><label>멀린 사업자<select aria-label={privateText(String(`${bill.date} ${bill.maskedCard} 멀린 사업자`))} value={businessId} disabled={applying||!!saved} onChange={event=>changeDraft(bill.key,{businessId:event.target.value,accountId:'',replacementKeys:[]})}><option value="">사업자 선택</option>{data.businesses.map(business=><option value={business.id} key={business.id}>{business.name}</option>)}</select></label><label>출금계좌<select aria-label={privateText(String(`${bill.date} ${bill.maskedCard} 출금계좌`))} value={draft.accountId} disabled={applying||!businessId} onChange={event=>changeDraft(bill.key,{accountId:event.target.value})}><option value="">출금계좌 선택</option>{data.accounts.filter(account=>account.business_id===businessId).map(account=><option value={account.id} key={account.id}>{privateText(String(([account.name,account.bank,account.masked_number].filter(Boolean).join(' · '))||''))}</option>)}</select></label></div>
+        {!saved&&<fieldset><legend>교체할 기존 카드대금 계획 · 선택한 항목은 해당 월에 제외됩니다</legend>{candidates.length?candidates.map(item=><label className="clobe-card-old-plan" key={item.key}><input type="checkbox" checked={draft.replacementKeys.includes(item.key)} disabled={applying} onChange={event=>changeDraft(bill.key,{replacementKeys:event.target.checked?[...draft.replacementKeys,item.key]:draft.replacementKeys.filter(key=>key!==item.key)})}/><span>{item.date||'날짜 미정'} · <FinancialText value={String((item.title)||'')}/><small>남은 계획 <FinancialValue value={won(item.remainingAmount)}/> · 전체 예산 <FinancialValue value={won(item.amount)}/></small></span></label>):<p className="clobe-card-note">이 사업자·월에 교체할 카드대금 계획이 없습니다. 다른 계획을 임의로 제외하지 않습니다.</p>}</fieldset>}
        </div>}
       </article>;
      })}
     </section>;
    })}
   </div>
-  <footer className="clobe-card-footer"><div>{selected.length?<><strong>선택 청구액 {won(selected.reduce((sum,{bill})=>sum+(bill.amount??0),0))}</strong><small>기존 선택 계획 {selectedOld.length}건 · {won(selectedOld.reduce((sum,item)=>sum+item.amount,0))} 제외</small></>:<span>청구자료를 확인한 뒤 교체할 계획을 선택하세요.</span>}</div><Button disabled={!ready||loading||applying||state.saving||!!state.error} onClick={()=>void apply()}>{applying?<LoaderCircle size={16} className="animate-spin"/>:<RefreshCw size={16}/>}선택한 카드대금 계획 교체</Button></footer>
+  <footer className="clobe-card-footer"><div>{selected.length?<><strong>선택 청구액 <FinancialValue value={won(selected.reduce((sum,{bill})=>sum+(bill.amount??0),0))}/></strong><small>기존 선택 계획 {selectedOld.length}건 · <FinancialValue value={won(selectedOld.reduce((sum,item)=>sum+item.amount,0))}/> 제외</small></>:<span>청구자료를 확인한 뒤 교체할 계획을 선택하세요.</span>}</div><Button disabled={!ready||loading||applying||state.saving||!!state.error} onClick={()=>void apply()}>{applying?<LoaderCircle size={16} className="animate-spin"/>:<RefreshCw size={16}/>}선택한 카드대금 계획 교체</Button></footer>
  </DialogContent></Dialog></>;
 }

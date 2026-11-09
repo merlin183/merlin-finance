@@ -1,3 +1,4 @@
+import {FinancialValue,FinancialText,useFinancialVisibility} from './financial-visibility';
 import {useMemo,useState} from 'react';
 import {ClipboardList,X} from 'lucide-react';
 import {Button} from '@/components/ui/button';
@@ -17,12 +18,13 @@ const dateLabel=(date:string)=>`${Number(date.slice(5,7))}월 ${Number(date.slic
 const accountLabel=(account:Account)=>[account.bank,account.masked_number].filter(Boolean).join(' · ')||'은행·계좌번호 확인 필요';
 
 function ItemReasons({items}:{items:AccountFundingItem[]}){
- const list=<ul className="funding-report-reasons">{items.map(item=><li key={item.key}><span>{item.title}</span><b>{digits(item.amount)}원</b></li>)}</ul>;
- return items.length>2?<details className="funding-report-reasons-more"><summary>{items.slice(0,2).map(item=>item.title).join(', ')} 외 {items.length-2}건</summary>{list}</details>:list;
+ const list=<ul className="funding-report-reasons">{items.map(item=><li key={item.key}><span><FinancialText value={item.title}/></span><b><FinancialValue value={digits(item.amount)}/>원</b></li>)}</ul>;
+ return items.length>2?<details className="funding-report-reasons-more"><summary><FinancialText value={items.slice(0,2).map(item=>item.title).join(', ')}/> 외 {items.length-2}건</summary>{list}</details>:list;
 }
 
 function FundingRows({report}:{report:FundingReportBusiness}){
- return <div className="funding-report-table-scroll" role="region" tabIndex={0} aria-label={`${report.funding.business.name} 날짜별 필요자금`}><table className="funding-report-table">
+ const {privateText}=useFinancialVisibility();
+ return <div className="funding-report-table-scroll" role="region" tabIndex={0} aria-label={privateText(`${report.funding.business.name} 날짜별 필요자금`)}><table className="funding-report-table">
   <caption className="sr-only">날짜별 추가 보충액과 해당 계좌의 누적 필요액. 누적 금액은 합산하지 않습니다. 금액 단위는 원입니다.</caption>
   <thead><tr><th scope="col">보충 필요일<small>예상 출금 전</small></th><th scope="col">계좌</th><th scope="col">그날 추가 보충액</th><th scope="col">계좌 누적 필요액</th><th scope="col">지급 사유 / 해당일 지출</th></tr></thead>
   <tbody>{report.rows.map(row=><FundingRow key={`${row.account.id}:${row.date}`} row={row}/>)}</tbody>
@@ -32,60 +34,62 @@ function FundingRows({report}:{report:FundingReportBusiness}){
 function FundingRow({row}:{row:FundingReportRow}){
  return <tr>
   <th scope="row"><time dateTime={row.date}>{dateLabel(row.date)}</time><small>{row.date}</small>{row.initialShortfall&&<span className="funding-report-badge">현재 음수 잔액 포함</span>}</th>
-  <td><strong>{row.account.name}</strong><small>{accountLabel(row.account)}</small></td>
-  <td className={`funding-report-money ${row.additionalTopUp===null?'funding-report-unknown':'negative'}`}><strong>{money(row.additionalTopUp)}</strong></td>
-  <td className="funding-report-money">{money(row.cumulativeTopUp)}<small>이 계좌 · {dateLabel(row.date)}까지</small></td>
-  <td className="funding-report-reason-cell">{row.categoryNames.length>0&&<p className="funding-report-categories">{row.categoryNames.join(' · ')}</p>}{row.items.length>0?<><ItemReasons items={row.items}/><small>해당일 지출 합계 {money(row.expenses)}</small></>:<p>음수 잔액의 보충이 필요합니다.</p>}{row.initialShortfall&&<small>음수 잔액 보충 포함 · 새 지출 아님</small>}</td>
+  <td><strong><FinancialText value={row.account.name}/></strong><small><FinancialText value={accountLabel(row.account)}/></small></td>
+  <td className={`funding-report-money ${row.additionalTopUp===null?'funding-report-unknown':'negative'}`}><strong><FinancialValue value={money(row.additionalTopUp)}/></strong></td>
+  <td className="funding-report-money"><FinancialValue value={money(row.cumulativeTopUp)}/><small>이 계좌 · {dateLabel(row.date)}까지</small></td>
+  <td className="funding-report-reason-cell">{row.categoryNames.length>0&&<p className="funding-report-categories">{row.categoryNames.join(' · ')}</p>}{row.items.length>0?<><ItemReasons items={row.items}/><small>해당일 지출 합계 <FinancialValue value={money(row.expenses)}/></small></>:<p>음수 잔액의 보충이 필요합니다.</p>}{row.initialShortfall&&<small>음수 잔액 보충 포함 · 새 지출 아님</small>}</td>
  </tr>;
 }
 
 function UndatedBudget({report}:{report:FundingReportBusiness}){
+ const {privateText}=useFinancialVisibility();
  const undatedUnassigned=report.unassignedItems.filter(item=>item.date===null);
  const total=report.undatedAccounts.reduce((sum,account)=>sum+account.expenses,undatedUnassigned.reduce((sum,item)=>sum+item.amount,0));
  if(total===0)return null;
- return <section className="funding-report-pending" aria-label={`${report.funding.business.name} 날짜 미정 예산`}>
-  <header><h4>지급일을 먼저 확인할 예산</h4><strong>{digits(total)}원</strong></header>
+ return <section className="funding-report-pending" aria-label={privateText(`${report.funding.business.name} 날짜 미정 예산`)}>
+  <header><h4>지급일을 먼저 확인할 예산</h4><strong><FinancialValue value={digits(total)}/>원</strong></header>
   <p>기간 합계에 포함 · 날짜별 보충액 제외 · 지급일 확인 필요</p>
-  {report.undatedAccounts.map(item=><details key={item.account.id}><summary><span>{item.account.name}<small>{accountLabel(item.account)}</small></span><strong>{digits(item.expenses)}원 · {item.items.length}건</strong></summary>{item.categoryNames.length>0&&<p className="funding-report-categories">{item.categoryNames.join(' · ')}</p>}<ItemReasons items={item.items}/></details>)}
-  {undatedUnassigned.length>0&&<details><summary><span>출금 계좌도 확인 필요</span><strong>{digits(undatedUnassigned.reduce((sum,item)=>sum+item.amount,0))}원</strong></summary><ItemReasons items={undatedUnassigned}/></details>}
+  {report.undatedAccounts.map(item=><details key={item.account.id}><summary><span><FinancialText value={item.account.name}/><small><FinancialText value={accountLabel(item.account)}/></small></span><strong><FinancialValue value={digits(item.expenses)}/>원 · {item.items.length}건</strong></summary>{item.categoryNames.length>0&&<p className="funding-report-categories">{item.categoryNames.join(' · ')}</p>}<ItemReasons items={item.items}/></details>)}
+  {undatedUnassigned.length>0&&<details><summary><span>출금 계좌도 확인 필요</span><strong><FinancialValue value={digits(undatedUnassigned.reduce((sum,item)=>sum+item.amount,0))}/>원</strong></summary><ItemReasons items={undatedUnassigned}/></details>}
  </section>;
 }
 
 function BusinessReport({report}:{report:FundingReportBusiness}){
+ const {privateText}=useFinancialVisibility();
  const {funding}=report;
  const unknown=funding.accounts.filter(account=>account.requiredTopUp===null);
  const unassignedDated=report.unassignedItems.filter(item=>item.date!==null);
  const unconfirmed=funding.unconfirmedItems??[];
  const alreadyNegative=funding.accounts.some(account=>account.snapshot.balance!==null&&account.snapshot.balance<0);
- return <section className="funding-report-business" aria-label={`${funding.business.name} 필요자금 보고`}>
+ return <section className="funding-report-business" aria-label={privateText(`${funding.business.name} 필요자금 보고`)}>
   <header className="funding-report-business-head"><h3><i style={{background:funding.business.color}} aria-hidden="true"/>{funding.business.name}</h3><span>통장 {funding.accounts.length}개</span></header>
   <dl className="funding-report-business-summary">
-   <div><dt>기간 전체 추가 필요금액</dt><dd className={report.requiredTopUp===null?'funding-report-unknown':report.requiredTopUp>0?'negative':''}>{money(report.requiredTopUp)}</dd>{report.requiredTopUp===null&&<small>확인된 계좌 소계 {money(report.knownRequiredTopUp)}</small>}</div>
+   <div><dt>기간 전체 추가 필요금액</dt><dd className={report.requiredTopUp===null?'funding-report-unknown':report.requiredTopUp>0?'negative':''}><FinancialValue value={money(report.requiredTopUp)}/></dd>{report.requiredTopUp===null&&<small>확인된 계좌 소계 <FinancialValue value={money(report.knownRequiredTopUp)}/></small>}</div>
    <div><dt>{alreadyNegative?'현재 잔액 부족':'날짜 확인된 첫 보충 필요일'}</dt><dd>{alreadyNegative?'현재 부족분 보충 필요':report.earliestFundingDate?<time dateTime={report.earliestFundingDate}>{dateLabel(report.earliestFundingDate)}</time>:report.fundingDateIncomplete?'확인 필요':'날짜별 추가금 없음'}</dd><small>{alreadyNegative?'현재 음수 잔액의 보충 포함':report.fundingDateIncomplete?'지급 여부·날짜·계좌 미확인 항목 확인':'확인된 출금 예상일 기준'}</small></div>
-   <div><dt>날짜별 보충 계획 합계</dt><dd>{money(report.datedRequiredTopUp)}</dd>{report.datedRequiredTopUp===null?<small>계산 가능 소계 {money(report.knownDatedRequiredTopUp)}</small>:<small>기간 전체 필요금액에 포함된 금액</small>}</div>
+   <div><dt>날짜별 보충 계획 합계</dt><dd><FinancialValue value={money(report.datedRequiredTopUp)}/></dd>{report.datedRequiredTopUp===null?<small>계산 가능 소계 <FinancialValue value={money(report.knownDatedRequiredTopUp)}/></small>:<small>기간 전체 필요금액에 포함된 금액</small>}</div>
   </dl>
   {funding.accounts.length===0&&<p className="funding-report-warning">계좌 미등록 · 통장별 필요금액 계산 불가</p>}
-  {unknown.length>0&&<p className="funding-report-warning">{unknown.map(item=>`${item.account.name} (${accountLabel(item.account)})`).join(', ')} · 잔액·출금 계좌·지난 일정 확인 필요</p>}
-  {unconfirmed.length>0&&<section className="funding-report-pending" aria-label={`${funding.business.name} 지급 여부 미확인 일정`}><header><h4>지난 등록 일정 지급 확인 필요</h4><strong>{unconfirmed.length}건 · {money(unconfirmed.reduce((sum,item)=>sum+item.amount,0))}</strong></header><p>오늘까지 등록된 일정으로, 지급 여부를 알 수 없어 남은 지출에서 제외했습니다. 확인 전까지 전체 필요금액을 확정하지 않습니다.</p><ul className="funding-report-unassigned">{unconfirmed.map(item=><li key={item.key}><time dateTime={item.date??undefined}>{item.date}</time><span>{item.title}</span><strong>{money(item.amount)}</strong></li>)}</ul></section>}
+  {unknown.length>0&&<p className="funding-report-warning"><FinancialText value={unknown.map(item=>`${item.account.name} (${accountLabel(item.account)})`).join(', ')}/> · 잔액·출금 계좌·지난 일정 확인 필요</p>}
+  {unconfirmed.length>0&&<section className="funding-report-pending" aria-label={privateText(`${funding.business.name} 지급 여부 미확인 일정`)}><header><h4>지난 등록 일정 지급 확인 필요</h4><strong>{unconfirmed.length}건 · <FinancialValue value={money(unconfirmed.reduce((sum,item)=>sum+item.amount,0))}/></strong></header><p>오늘까지 등록된 일정으로, 지급 여부를 알 수 없어 남은 지출에서 제외했습니다. 확인 전까지 전체 필요금액을 확정하지 않습니다.</p><ul className="funding-report-unassigned">{unconfirmed.map(item=><li key={item.key}><time dateTime={item.date??undefined}>{item.date}</time><span><FinancialText value={item.title}/></span><strong><FinancialValue value={money(item.amount)}/></strong></li>)}</ul></section>}
   {report.rows.length>0?<FundingRows report={report}/>:funding.accounts.length>0&&<p className="funding-report-empty">날짜가 정해진 지출에서는 계산 가능한 추가 보충 내역이 없습니다.{report.fundingDateIncomplete?' 아래 미확인 항목을 먼저 확인하세요.':' 새로운 지출이나 실제 잔액 변동은 별도 확인이 필요합니다.'}</p>}
   <UndatedBudget report={report}/>
-  {unassignedDated.length>0&&<section className="funding-report-pending" aria-label={`${funding.business.name} 계좌 미지정 지출`}><header><h4>출금 계좌를 확인할 지출</h4><strong>{digits(unassignedDated.reduce((sum,item)=>sum+item.amount,0))}원</strong></header><p>지출일은 있으나 출금 통장이 지정되지 않아 통장별 보충액을 계산하지 않았습니다.</p><ul className="funding-report-unassigned">{unassignedDated.map(item=><li key={item.key}><time dateTime={item.date!}>{item.date}</time><span>{item.title}</span><strong>{money(item.amount)}</strong></li>)}</ul></section>}
+  {unassignedDated.length>0&&<section className="funding-report-pending" aria-label={privateText(`${funding.business.name} 계좌 미지정 지출`)}><header><h4>출금 계좌를 확인할 지출</h4><strong><FinancialValue value={digits(unassignedDated.reduce((sum,item)=>sum+item.amount,0))}/>원</strong></header><p>지출일은 있으나 출금 통장이 지정되지 않아 통장별 보충액을 계산하지 않았습니다.</p><ul className="funding-report-unassigned">{unassignedDated.map(item=><li key={item.key}><time dateTime={item.date!}>{item.date}</time><span><FinancialText value={item.title}/></span><strong><FinancialValue value={money(item.amount)}/></strong></li>)}</ul></section>}
  </section>;
 }
 
 function FundingReportBody({plans,estimates,basis,range,asOf,incoming}:ReportProps){
  const report=useMemo(()=>buildFundingReport(plans,estimates,basis,range,asOf,incoming),[plans,estimates,basis,range,asOf,incoming]);
  return <>
-  <div className="funding-report-total"><div><span>기간 전체 추가 필요자금</span><strong className={report.requiredTopUp===null?'funding-report-unknown':report.requiredTopUp>0?'negative':''}>{money(report.requiredTopUp)}</strong>{report.requiredTopUp===null&&<small>계산 가능한 계좌 소계 {money(report.knownRequiredTopUp)}</small>}</div><p>사업자 {report.businesses.length}개<br/>날짜 미정 예산 <b>{money(report.undatedExpenses)}</b> 포함</p></div>
+  <div className="funding-report-total"><div><span>기간 전체 추가 필요자금</span><strong className={report.requiredTopUp===null?'funding-report-unknown':report.requiredTopUp>0?'negative':''}><FinancialValue value={money(report.requiredTopUp)}/></strong>{report.requiredTopUp===null&&<small>계산 가능한 계좌 소계 <FinancialValue value={money(report.knownRequiredTopUp)}/></small>}</div><p>사업자 {report.businesses.length}개<br/>날짜 미정 예산 <b><FinancialValue value={money(report.undatedExpenses)}/></b> 포함</p></div>
   <p className="funding-report-method">앞선 부족액을 채웠다면 <strong>그날 추가 보충액</strong>, 아직 입금하지 않았다면 <strong>계좌 누적 필요액</strong>을 확인하세요. 누적액은 날짜별 합산하지 않습니다.{incoming?.length?' 토스 예정액은 지급일부터 반영합니다.':''}</p>
   {report.businesses.length>0&&<div className="funding-report-table-scroll funding-report-overview-scroll" role="region" tabIndex={0} aria-label="사업자별 필요자금 요약"><table className="funding-report-overview">
    <caption className="sr-only">선택한 모든 사업자의 기간 전체 필요금액, 첫 보충 예상일과 날짜 미정 예산</caption>
    <thead><tr><th scope="col">사업자</th><th scope="col">기간 전체 추가 필요금액</th><th scope="col">날짜 확인된 첫 보충일</th><th scope="col">날짜 미정 예산</th></tr></thead>
    <tbody>{report.businesses.map(business=>{const alreadyNegative=business.funding.accounts.some(account=>account.snapshot.balance!==null&&account.snapshot.balance<0);return <tr key={business.funding.business.id}>
     <th scope="row"><i style={{background:business.funding.business.color}} aria-hidden="true"/>{business.funding.business.name}</th>
-    <td className={business.requiredTopUp===null?'funding-report-unknown':business.requiredTopUp>0?'negative':''}><strong>{money(business.requiredTopUp)}</strong>{business.requiredTopUp===null&&<small>계산 가능 소계 {money(business.knownRequiredTopUp)}</small>}</td>
+    <td className={business.requiredTopUp===null?'funding-report-unknown':business.requiredTopUp>0?'negative':''}><strong><FinancialValue value={money(business.requiredTopUp)}/></strong>{business.requiredTopUp===null&&<small>계산 가능 소계 <FinancialValue value={money(business.knownRequiredTopUp)}/></small>}</td>
     <td>{alreadyNegative?'현재 잔액 부족':business.earliestFundingDate?<time dateTime={business.earliestFundingDate}>{dateLabel(business.earliestFundingDate)}</time>:business.fundingDateIncomplete?'확인 필요':'날짜별 추가금 없음'}{business.fundingDateIncomplete&&<small>지급 여부·날짜·계좌 미확인 항목 별도</small>}</td>
-    <td>{money(business.timeline.undatedExpenses)}</td>
+    <td><FinancialValue value={money(business.timeline.undatedExpenses)}/></td>
    </tr>;})}</tbody>
   </table></div>}
   {report.businesses.length>0?report.businesses.map(business=><BusinessReport key={business.funding.business.id} report={business}/>):<p className="funding-report-empty">선택한 사업자가 없어 필요자금을 계산할 수 없습니다.</p>}

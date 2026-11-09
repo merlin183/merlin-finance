@@ -1,3 +1,4 @@
+import {FinancialValue,FinancialText,useFinancialVisibility} from './financial-visibility';
 import {useId,useMemo,useRef,useState} from 'react';
 import {ChevronLeft,ChevronRight} from 'lucide-react';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
@@ -32,6 +33,7 @@ const incomeLabel=(item:TossCalendarIncome)=>`${item.label}${item.status==='pend
 const incomeColor=(item:Pick<TossCalendarIncome,'amount'>)=>item.amount>0?'positive':item.amount<0?'negative':'';
 
 function CalendarIncomeAmounts({items,className=''}:{items:TossCalendarIncome[];className?:string}){
+ const {privateText}=useFinancialVisibility();
  if(!items.length)return null;
  // Only unambiguous scheduled/received rows share a subtotal. Unresolved rows
  // keep their original amounts and labels; their differences are never cash.
@@ -41,7 +43,7 @@ function CalendarIncomeAmounts({items,className=''}:{items:TossCalendarIncome[];
   if(previous)previous.amount+=item.amount;
   else rows.push({...item});
  }
- return <span className={`funding-timeline-income-amounts ${className}`}>{rows.map(item=><span key={item.key} className={`funding-timeline-income-line ${incomeColor(item)}`} title={`${incomeLabel(item)}원${item.reason?` · ${item.reason}`:''}`}><span>{item.label}{item.status!=='pending'&&item.status!=='received'&&<small>정산액</small>}</span><strong>{incomeAmount(item)}</strong></span>)}</span>;
+ return <span className={`funding-timeline-income-amounts ${className}`}>{rows.map(item=><span key={item.key} className={`funding-timeline-income-line ${incomeColor(item)}`} title={privateText(`${incomeLabel(item)}원${item.reason?` · ${item.reason}`:''}`)}><span>{item.label}{item.status!=='pending'&&item.status!=='received'&&<small>정산액</small>}</span><strong><FinancialValue value={incomeAmount(item)}/></strong></span>)}</span>;
 }
 
 function CalendarIncomeDetails({items,businesses}:{items:TossCalendarIncome[];businesses:AccountFundingBusiness[]}){
@@ -49,30 +51,31 @@ function CalendarIncomeDetails({items,businesses}:{items:TossCalendarIncome[];bu
  return <section className="funding-timeline-detail-section funding-timeline-income-details" aria-label="토스 정산 입금 상태"><h4>토스 정산 입금</h4><p className="funding-timeline-detail-note">정산 지급일 기준입니다. 입금 확인 필요·차액 확인 금액을 현재 현금이나 추가 필요자금에 더하지 않습니다.</p><ul className="funding-timeline-detail-items">{items.map(item=>{
   const business=businesses.find(row=>row.business.id===item.businessId)?.business;
   const account=businesses.flatMap(row=>row.accounts).find(row=>row.account.id===item.accountId)?.account;
-  return <li key={item.key}><div><span className="funding-timeline-detail-business"><i style={{background:business?.color}} aria-hidden="true"/>{business?.name??'사업자 확인 필요'} · {account?[account.name,account.bank,account.masked_number].filter(Boolean).join(' · '):'입금 계좌 확인 필요'}</span><p>{item.title} · {item.label}</p>{item.reason&&<small>{item.reason}</small>}{item.receivedAmount>0&&item.status!=='received'&&<small>통장 확인 입금 {digits(item.receivedAmount)}원 · 정산액과의 차액 {digits(item.differenceAmount)}원{item.differenceAmount<0?' (초과 입금)':''}</small>}</div><strong className={incomeColor(item)}>{item.status!=='pending'&&item.status!=='received'&&<span className="funding-timeline-income-original-label">정산액</span>}{incomeAmount(item)}원</strong></li>;
+  return <li key={item.key}><div><span className="funding-timeline-detail-business"><i style={{background:business?.color}} aria-hidden="true"/>{business?.name??'사업자 확인 필요'} · <FinancialText value={account?[account.name,account.bank,account.masked_number].filter(Boolean).join(' · '):'입금 계좌 확인 필요'}/></span><p><FinancialText value={item.title}/> · {item.label}</p>{item.reason&&<small><FinancialText value={item.reason}/></small>}{item.receivedAmount>0&&item.status!=='received'&&<small>통장 확인 입금 <FinancialValue value={digits(item.receivedAmount)}/>원 · 정산액과의 차액 <FinancialValue value={digits(item.differenceAmount)}/>원{item.differenceAmount<0?' (초과 입금)':''}</small>}</div><strong className={incomeColor(item)}>{item.status!=='pending'&&item.status!=='received'&&<span className="funding-timeline-income-original-label">정산액</span>}<FinancialValue value={incomeAmount(item)}/>원</strong></li>;
  })}</ul></section>;
 }
 
 function CalendarExpenseAmounts({row,className=''}:{row:CalendarAmounts;className?:string}){
  return <span className={`funding-timeline-amounts ${className}`}>
-  {row.actualExpenses>0&&<span className="funding-timeline-expense-line negative"><span>실제</span><strong>{expense(row.actualExpenses)}</strong></span>}
-  {row.plannedExpenses>0&&<span className="funding-timeline-expense-line negative"><span className="funding-timeline-planned-badge">예정</span><strong>{expense(row.plannedExpenses)}</strong></span>}
-  {row.confirmedExpenses>0&&<span className="funding-timeline-expense-line negative"><span>수동 확인</span><strong>{expense(row.confirmedExpenses)}</strong></span>}
-  {!hasExpenses(row)&&<span className="funding-timeline-zero">0</span>}
+  {row.actualExpenses>0&&<span className="funding-timeline-expense-line negative"><span>실제</span><strong><FinancialValue value={expense(row.actualExpenses)}/></strong></span>}
+  {row.plannedExpenses>0&&<span className="funding-timeline-expense-line negative"><span className="funding-timeline-planned-badge">예정</span><strong><FinancialValue value={expense(row.plannedExpenses)}/></strong></span>}
+  {row.confirmedExpenses>0&&<span className="funding-timeline-expense-line negative"><span>수동 확인</span><strong><FinancialValue value={expense(row.confirmedExpenses)}/></strong></span>}
+  {!hasExpenses(row)&&<span className="funding-timeline-zero"><FinancialValue value="0"/></span>}
  </span>;
 }
 
-function CalendarExpenseItems({items,businesses,kind}:{items:CashCalendarItem[];businesses:AccountFundingBusiness[];kind:CashCalendarItem['kind']}){
+export function CalendarExpenseItems({items,businesses,kind}:{items:CashCalendarItem[];businesses:AccountFundingBusiness[];kind:CashCalendarItem['kind']}){
+ const {privateText}=useFinancialVisibility();
  const rows=items.filter(item=>item.kind===kind);
  if(!rows.length)return null;
  const label=kind==='actual'?'실제 출금':kind==='planned'?'남은 예정 지출':'수동 출금 확인';
- return <section className={`funding-timeline-detail-section ${kind}`} aria-label={label}>
-  <h4>{label}<strong className="negative">{expense(rows.reduce((sum,item)=>sum+item.amount,0))}원</strong></h4>
+ return <section className={`funding-timeline-detail-section ${kind}`} aria-label={privateText(label)}>
+  <h4>{label}<strong className="negative"><FinancialValue value={expense(rows.reduce((sum,item)=>sum+item.amount,0))}/>원</strong></h4>
   {kind==='confirmed'&&<p className="funding-timeline-detail-note">사용자가 확인한 금액입니다. 원본 통장 출금과 구분하며 실제 출금 합계에는 더하지 않습니다.</p>}
   <ul className="funding-timeline-detail-items">{rows.map(item=>{
    const business=businesses.find(row=>row.business.id===item.businessId);
    const account=business?.accounts.find(row=>row.account.id===item.accountId)?.account;
-   return <li key={item.key} className={item.paymentKind==='tax'?'funding-timeline-tax-item':''}><div><span className="funding-timeline-detail-business"><i style={{background:business?.business.color}} aria-hidden="true"/>{business?.business.name??'사업자 확인 필요'} · {account?[account.name,account.bank,account.masked_number].filter(Boolean).join(' · '):'출금 계좌 미지정'}</span><p>{item.paymentKind==='tax'&&<span className="tax-payment-badge">세금 납부</span>} {item.title}</p>{item.note&&<small>{item.note}</small>}</div><strong className="negative">{kind==='planned'&&<span className="funding-timeline-planned-badge">예정</span>}{expense(item.amount)}원</strong></li>;
+   return <li key={item.key} className={item.paymentKind==='tax'?'funding-timeline-tax-item':''}><div><span className="funding-timeline-detail-business"><i style={{background:business?.business.color}} aria-hidden="true"/>{business?.business.name??'사업자 확인 필요'} · <FinancialText value={account?[account.name,account.bank,account.masked_number].filter(Boolean).join(' · '):'출금 계좌 미지정'}/></span><p>{item.paymentKind==='tax'&&<span className="tax-payment-badge">세금 납부</span>} <FinancialText value={item.title}/></p>{item.note&&<small><FinancialText value={item.note}/></small>}</div><strong className="negative">{kind==='planned'&&<span className="funding-timeline-planned-badge">예정</span>}<FinancialValue value={expense(item.amount)}/>원</strong></li>;
   })}</ul>
  </section>;
 }
@@ -99,12 +102,13 @@ function FundingDayItems({rows}:{rows:FundingAccountDay[]}){
  const withItems=rows.filter(row=>row.items.length>0);
  if(!withItems.length)return <p className="funding-timeline-empty">이 날짜에 계좌가 확인된 예정 지출은 없습니다.</p>;
  return <div className="funding-timeline-item-groups">{withItems.map(row=><details key={row.account.id} className="funding-timeline-item-group" open={withItems.length===1}>
-  <summary><span><i style={{background:row.business.color}} aria-hidden="true"/>{accountLabel(row)}</span><strong className="negative">예정 {expense(row.expenses)}원 · {row.items.length}건</strong></summary>
-  <ul>{row.items.map(item=><li key={item.key} className={item.paymentKind==='tax'?'funding-timeline-tax-item':''}><span>{item.paymentKind==='tax'&&<span className="tax-payment-badge">세금 납부</span>} {item.title}<small>{item.date} · {item.note}</small></span><strong className="negative">예정 {expense(item.amount)}원</strong></li>)}</ul>
+  <summary><span><i style={{background:row.business.color}} aria-hidden="true"/><FinancialText value={accountLabel(row)}/></span><strong className="negative">예정 <FinancialValue value={expense(row.expenses)}/>원 · {row.items.length}건</strong></summary>
+  <ul>{row.items.map(item=><li key={item.key} className={item.paymentKind==='tax'?'funding-timeline-tax-item':''}><span>{item.paymentKind==='tax'&&<span className="tax-payment-badge">세금 납부</span>} <FinancialText value={item.title}/><small>{item.date} · <FinancialText value={item.note}/></small></span><strong className="negative">예정 <FinancialValue value={expense(item.amount)}/>원</strong></li>)}</ul>
  </details>)}</div>;
 }
 
 export function FundingTimeline({businesses,accountId,range,asOf,focusDate='',cashCalendar,calendarIncome}:TimelineProps){
+ const {privateText}=useFinancialVisibility();
  const scopedBusinesses=useMemo(()=>accountId==='all'?businesses:businesses.filter(item=>item.accounts.some(account=>account.account.id===accountId)).map(item=>({...item,accounts:item.accounts.filter(account=>account.account.id===accountId)})),[businesses,accountId]);
  const timeline=useMemo(()=>buildFundingTimeline(scopedBusinesses,range,asOf),[scopedBusinesses,range,asOf]);
  const calendarReceipts=useMemo(()=>(calendarIncome??scopedBusinesses.flatMap(row=>row.accounts.flatMap(account=>(account.scheduledIncome??[]).map((receipt):TossCalendarIncome=>({key:receipt.key,businessId:receipt.businessId,accountId:receipt.accountId,date:receipt.date,title:receipt.title,amount:receipt.amount,status:'pending',label:'입금 예정',receivedAmount:0,pendingAmount:receipt.amount,differenceAmount:receipt.amount,reason:null,merchantIds:[],matchedTransactionIds:[],noCash:true}))))).filter(item=>item.date>=range.from&&item.date<=range.to&&scopedBusinesses.some(row=>row.business.id===item.businessId)&&(accountId==='all'||item.accountId===accountId)),[calendarIncome,scopedBusinesses,range.from,range.to,accountId]);
@@ -138,7 +142,7 @@ export function FundingTimeline({businesses,accountId,range,asOf,focusDate='',ca
  const detailDay=calendarDays.find(day=>day.date===detailDate);
  const selected=timeline.days.find(day=>day.date===date);
  const parsed=parseFinanceDate(date);
- if(!selectedCalendar||!parsed)return <section className="funding-timeline" aria-label="날짜별 실제·예정 지출"><p className="funding-timeline-empty">선택한 기간에 표시할 날짜가 없습니다. 조회 기간을 확인해주세요.</p>{timeline.undatedExpenses>0&&<p className="funding-timeline-notice">날짜 미정 예정 {expense(timeline.undatedExpenses)}원은 날짜별로 배분하지 않았습니다.</p>}</section>;
+ if(!selectedCalendar||!parsed)return <section className="funding-timeline" aria-label="날짜별 실제·예정 지출"><p className="funding-timeline-empty">선택한 기간에 표시할 날짜가 없습니다. 조회 기간을 확인해주세요.</p>{timeline.undatedExpenses>0&&<p className="funding-timeline-notice">날짜 미정 예정 <FinancialValue value={expense(timeline.undatedExpenses)}/>원은 날짜별로 배분하지 않았습니다.</p>}</section>;
  const activeRange={from:calendarDays[0].date,to:range.to};
  const year=parsed.getFullYear(),month=parsed.getMonth();
  const first=new Date(year,month,1),last=new Date(year,month+1,0);
@@ -170,8 +174,8 @@ export function FundingTimeline({businesses,accountId,range,asOf,focusDate='',ca
     {detailDay&&<><CalendarExpenseAmounts row={detailDay} className="funding-timeline-detail-totals"/><CalendarExpenseItems items={detailDay.items} businesses={businesses} kind="actual"/><CalendarExpenseItems items={detailDay.items} businesses={businesses} kind="planned"/><CalendarExpenseItems items={detailDay.items} businesses={businesses} kind="confirmed"/>{!hasExpenses(detailDay)&&<p className="funding-timeline-empty">이 날짜에 표시할 지출이 없습니다.</p>}</>}
     <CalendarIncomeDetails items={detailIncome} businesses={businesses}/>
     {detailTaxes.length>0&&<section className="funding-timeline-detail-section" aria-label="세금 납부 기한"><h4>세금 납부 기한</h4>
-    <p className="funding-timeline-tax-dialog-total">납부할 세금 합계 <strong>{digits(detailTaxes.reduce((sum,item)=>sum+item.amount,0))}원</strong></p>
-    <ul className="funding-timeline-tax-dialog-list">{detailTaxes.map(item=><li key={`${item.business.id}:${item.key}`}><div><strong>{item.business.name}</strong><p>{item.title}</p><small>{item.account?[item.account.name,item.account.bank,item.account.masked_number].filter(Boolean).join(' · '):'출금 계좌 미지정'}</small></div><b>{digits(item.amount)}원</b></li>)}</ul>
+    <p className="funding-timeline-tax-dialog-total">납부할 세금 합계 <strong><FinancialValue value={digits(detailTaxes.reduce((sum,item)=>sum+item.amount,0))}/>원</strong></p>
+    <ul className="funding-timeline-tax-dialog-list">{detailTaxes.map(item=><li key={`${item.business.id}:${item.key}`}><div><strong>{item.business.name}</strong><p><FinancialText value={item.title}/></p><small><FinancialText value={item.account?[item.account.name,item.account.bank,item.account.masked_number].filter(Boolean).join(' · '):'출금 계좌 미지정'}/></small></div><b><FinancialValue value={digits(item.amount)}/>원</b></li>)}</ul>
     <p className="funding-timeline-tax-dialog-note">실제 납부 후 화면 상단 ‘납부 일정 확인’에서 납부 완료로 표시해 주세요. 통장 거래·잔액은 변경하지 않습니다.</p>
     </section>}
    </DialogContent>
@@ -180,14 +184,14 @@ export function FundingTimeline({businesses,accountId,range,asOf,focusDate='',ca
   <div className="funding-timeline-calendar-layout">
    <div className="funding-timeline-calendar-wrap">
     <div className="funding-timeline-month"><h4>{year}년 {month+1}월</h4><div><button type="button" aria-label="지출 계획 이전 달" disabled={!hasEarlier} onClick={()=>moveMonth(-1)}><ChevronLeft size={16}/></button><button type="button" aria-label="지출 계획 다음 달" disabled={!hasLater} onClick={()=>moveMonth(1)}><ChevronRight size={16}/></button></div><span>{calendarReceipts.length>0?'실제 · 예정 지출 · 토스 정산 입금':'실제 · 예정 지출'} · 단위: 원</span></div>
-    <div className="funding-timeline-calendar-scroll" role="region" tabIndex={0} aria-label="사업자별 실제·예정 지출 달력, 좁은 화면에서 좌우로 이동"><div className="funding-timeline-calendar" role="group" aria-label={`${year}년 ${month+1}월 실제·예정 지출 달력`}>
+    <div className="funding-timeline-calendar-scroll" role="region" tabIndex={0} aria-label="사업자별 실제·예정 지출 달력, 좁은 화면에서 좌우로 이동"><div className="funding-timeline-calendar" role="group" aria-label={privateText(`${year}년 ${month+1}월 실제·예정 지출 달력`)}>
      {weekdays.map((day,index)=><span className={`funding-timeline-weekday ${index===0?'sunday':''}`} key={day}>{day}</span>)}
      {grid.map(cell=>{
       const day=cell.inMonth?daysByDate.get(cell.date):undefined;
       const receipts=receiptsByDate.get(cell.date)??[];
       const activeBusinesses=day?calendarBusinessRows(day,receipts,scopedBusinesses):[];
       const taxes=day?taxItemsByDate.get(cell.date)??[]:[];
-      return <button key={cell.date} type="button" disabled={!day} className={`funding-timeline-day ${cell.date===date?'selected':''} ${day&&hasExpenses(day)?'has-expenses':''}`} data-tax-due={taxes.length>0||undefined} aria-pressed={!!day&&cell.date===date} aria-label={`${cell.date}${day?` ${expenseLabel(day)}${receipts.map(item=>`, 토스 ${incomeLabel(item)}원`).join('')}${activeBusinesses.map(row=>`, ${row.business.name} ${expenseLabel(row)}${row.receipts.map(item=>`, ${incomeLabel(item)}원`).join('')}`).join('')}, 상세보기`:' 조회 기간 밖'}`} onClick={()=>showDay(cell.date)}>
+      return <button key={cell.date} type="button" disabled={!day} className={`funding-timeline-day ${cell.date===date?'selected':''} ${day&&hasExpenses(day)?'has-expenses':''}`} data-tax-due={taxes.length>0||undefined} aria-pressed={!!day&&cell.date===date} aria-label={privateText(`${cell.date}${day?` ${expenseLabel(day)}${receipts.map(item=>`, 토스 ${incomeLabel(item)}원`).join('')}${activeBusinesses.map(row=>`, ${row.business.name} ${expenseLabel(row)}${row.receipts.map(item=>`, ${incomeLabel(item)}원`).join('')}`).join('')}, 상세보기`:' 조회 기간 밖'}`)} onClick={()=>showDay(cell.date)}>
        <span className="funding-timeline-day-number">{cell.day}</span>{taxes.length>0&&<span className="tax-payment-badge">세금 납부 {taxes.length}건</span>}
        {day&&<><CalendarExpenseAmounts row={day} className="funding-timeline-day-total"/><CalendarIncomeAmounts items={receipts} className="toss-calendar-income"/><span className="funding-timeline-day-businesses">{activeBusinesses.map(row=><span key={row.businessId} className="funding-timeline-day-business"><span className="funding-timeline-business-name"><i style={{background:row.business.color}} aria-hidden="true"/>{row.business.name}</span><CalendarExpenseAmounts row={row} className="funding-timeline-business-amount"/><CalendarIncomeAmounts items={row.receipts} className="toss-calendar-business"/></span>)}</span></>}
       </button>;
@@ -195,19 +199,19 @@ export function FundingTimeline({businesses,accountId,range,asOf,focusDate='',ca
     </div></div>
     <div className="funding-timeline-shortcuts"><span>바로 보기</span>{[10,15].map(day=>{const value=formatFinanceDate(new Date(year,month,day));return <button type="button" key={day} disabled={!daysByDate.has(value)} aria-pressed={date===value} onClick={()=>setChosenDate(value)}>{month+1}월 {day}일</button>;})}</div>
    </div>
-   <details className="funding-timeline-dates"><summary>{month+1}월 지출·입금일 목록 <span>{datesWithExpenses.length}일</span></summary><div className="funding-timeline-dates-scroll" role="region" tabIndex={0} aria-label="날짜별 실제·예정 지출 및 토스 정산 입금 목록"><table><caption className="sr-only">선택한 달의 날짜별 실제 출금, 남은 예정 지출, 토스 정산 입금 상태와 사업자별 소계. 금액 단위 원.</caption><thead><tr><th scope="col">날짜</th><th scope="col">지출·토스 정산 입금</th><th scope="col">사업자별 지출·입금</th></tr></thead><tbody>{datesWithExpenses.map(day=>{const receipts=receiptsByDate.get(day.date)??[];return <tr key={day.date} className={day.date===date?'selected':''}><th scope="row"><button type="button" aria-pressed={day.date===date} aria-label={`${dayLabel(day.date)} 지출·입금 상세보기`} onClick={()=>showDay(day.date)}>{dayLabel(day.date)}</button></th><td className="funding-timeline-date-total"><CalendarExpenseAmounts row={day}/><CalendarIncomeAmounts items={receipts}/></td><td><div className="funding-timeline-date-businesses">{calendarBusinessRows(day,receipts,scopedBusinesses).map(row=><span key={row.businessId}><span className="funding-timeline-business-name"><i style={{background:row.business.color}} aria-hidden="true"/>{row.business.name}</span><CalendarExpenseAmounts row={row}/><CalendarIncomeAmounts items={row.receipts}/></span>)}</div></td></tr>;})}</tbody></table>{!datesWithExpenses.length&&<p className="funding-timeline-empty">이 달에 날짜가 정해진 지출·입금이 없습니다.</p>}</div></details>
+   <details className="funding-timeline-dates"><summary>{month+1}월 지출·입금일 목록 <span>{datesWithExpenses.length}일</span></summary><div className="funding-timeline-dates-scroll" role="region" tabIndex={0} aria-label="날짜별 실제·예정 지출 및 토스 정산 입금 목록"><table><caption className="sr-only">선택한 달의 날짜별 실제 출금, 남은 예정 지출, 토스 정산 입금 상태와 사업자별 소계. 금액 단위 원.</caption><thead><tr><th scope="col">날짜</th><th scope="col">지출·토스 정산 입금</th><th scope="col">사업자별 지출·입금</th></tr></thead><tbody>{datesWithExpenses.map(day=>{const receipts=receiptsByDate.get(day.date)??[];return <tr key={day.date} className={day.date===date?'selected':''}><th scope="row"><button type="button" aria-pressed={day.date===date} aria-label={privateText(`${dayLabel(day.date)} 지출·입금 상세보기`)} onClick={()=>showDay(day.date)}>{dayLabel(day.date)}</button></th><td className="funding-timeline-date-total"><CalendarExpenseAmounts row={day}/><CalendarIncomeAmounts items={receipts}/></td><td><div className="funding-timeline-date-businesses">{calendarBusinessRows(day,receipts,scopedBusinesses).map(row=><span key={row.businessId}><span className="funding-timeline-business-name"><i style={{background:row.business.color}} aria-hidden="true"/>{row.business.name}</span><CalendarExpenseAmounts row={row}/><CalendarIncomeAmounts items={row.receipts}/></span>)}</div></td></tr>;})}</tbody></table>{!datesWithExpenses.length&&<p className="funding-timeline-empty">이 달에 날짜가 정해진 지출·입금이 없습니다.</p>}</div></details>
   </div>
-  {undatedPlanned>0&&<p className="funding-timeline-notice"><strong>날짜 미정 · <span className="negative">예정 {expense(undatedPlanned)}원</span></strong> · 날짜 칸 제외, ‘기간 전체’ 남은 지출에 포함</p>}
-  {undatedConfirmed>0&&<p className="funding-timeline-notice"><strong>날짜 미정 · 수동 확인 {expense(undatedConfirmed)}원</strong> · 통장 실제 출금 합계와 구분</p>}
-  {accountId==='all'&&timeline.unassignedExpenses>0&&<p className="funding-timeline-notice"><strong>계좌 미지정 · <span className="negative">예정 {expense(timeline.unassignedExpenses)}원</span></strong> · 예정 합계에 포함, 추가 입금 합계 미확정</p>}
+  {undatedPlanned>0&&<p className="funding-timeline-notice"><strong>날짜 미정 · <span className="negative">예정 <FinancialValue value={expense(undatedPlanned)}/>원</span></strong> · 날짜 칸 제외, ‘기간 전체’ 남은 지출에 포함</p>}
+  {undatedConfirmed>0&&<p className="funding-timeline-notice"><strong>날짜 미정 · 수동 확인 <FinancialValue value={expense(undatedConfirmed)}/>원</strong> · 통장 실제 출금 합계와 구분</p>}
+  {accountId==='all'&&timeline.unassignedExpenses>0&&<p className="funding-timeline-notice"><strong>계좌 미지정 · <span className="negative">예정 <FinancialValue value={expense(timeline.unassignedExpenses)}/>원</span></strong> · 예정 합계에 포함, 추가 입금 합계 미확정</p>}
   {timeline.missingAccountBusinessCount>0&&<p className="funding-timeline-notice">계좌 미등록 사업자 {timeline.missingAccountBusinessCount}개 · 전체 필요금액 미확정</p>}
   {selectedIncome.length>0&&<div className="funding-timeline-selected-income"><h4>{dayLabel(date)} 토스 정산 입금 상태</h4><CalendarIncomeAmounts items={selectedIncome}/><button type="button" onClick={()=>setDetailDate(date)}>사업자·계좌·확인 근거 보기</button></div>}
-  <div className="funding-timeline-evidence"><header><h4>{dayLabel(date)} 실제·예정 지출 상세</h4><button type="button" onClick={()=>setDetailDate(date)}>상세보기</button></header><p className="funding-timeline-detail-note">실제 출금은 현재 잔액에 이미 반영된 금액입니다. 추가 필요자금에는 남은 예정 지출만 사용합니다.</p>{selected&&<details className="funding-timeline-funding-evidence"><summary>남은 예정 지출 근거 · 필요자금 계산용</summary><FundingDayItems rows={selected.accounts}/>{selectedUnassigned.length>0&&<details className="funding-timeline-item-group unassigned"><summary>출금 계좌 미지정 · {selectedUnassigned.length}건</summary><ul>{selectedUnassigned.map(item=><li key={`${item.business.id}:${item.key}`}><span>{item.business.name} · {item.paymentKind==='tax'&&<span className="tax-payment-badge">세금 납부</span>} {item.title}<small>{item.date} · {item.note}</small></span><strong className="negative">예정 {expense(item.amount)}원</strong></li>)}</ul></details>}</details>}</div>
+  <div className="funding-timeline-evidence"><header><h4>{dayLabel(date)} 실제·예정 지출 상세</h4><button type="button" onClick={()=>setDetailDate(date)}>상세보기</button></header><p className="funding-timeline-detail-note">실제 출금은 현재 잔액에 이미 반영된 금액입니다. 추가 필요자금에는 남은 예정 지출만 사용합니다.</p>{selected&&<details className="funding-timeline-funding-evidence"><summary>남은 예정 지출 근거 · 필요자금 계산용</summary><FundingDayItems rows={selected.accounts}/>{selectedUnassigned.length>0&&<details className="funding-timeline-item-group unassigned"><summary>출금 계좌 미지정 · {selectedUnassigned.length}건</summary><ul>{selectedUnassigned.map(item=><li key={`${item.business.id}:${item.key}`}><span>{item.business.name} · {item.paymentKind==='tax'&&<span className="tax-payment-badge">세금 납부</span>} <FinancialText value={item.title}/><small>{item.date} · <FinancialText value={item.note}/></small></span><strong className="negative">예정 <FinancialValue value={expense(item.amount)}/>원</strong></li>)}</ul></details>}</details>}</div>
   <section className="funding-timeline-funding" aria-label="잔액 기준 추가 입금 부족액">
    <header><h4>추가로 준비할 자금</h4></header>
    {selected?<><div className="funding-timeline-kpis" aria-live="polite">
-    <div className="funding-timeline-kpi"><span>{dayLabel(date)} 추가 입금 부족액</span><strong className={selected.additionalTopUp===null?'account-funding-unknown':selected.additionalTopUp>0?'negative':''}>{amount(selected.additionalTopUp)}{selected.additionalTopUp===null?'':'원'}</strong>{selected.additionalTopUp===null&&<small>확인된 {knownCount}개 계좌 소계 {digits(selected.knownAdditionalTopUp)}원</small>}<p>앞선 날짜의 필요액을 이미 넣었다면 그날 추가로 필요한 금액</p></div>
-    <div className="funding-timeline-kpi"><span>{dayLabel(date)}까지 누적 필요액</span><strong className={selected.cumulativeTopUp===null?'account-funding-unknown':selected.cumulativeTopUp>0?'negative':''}>{amount(selected.cumulativeTopUp)}{selected.cumulativeTopUp===null?'':'원'}</strong>{selected.cumulativeTopUp===null&&<small>확인된 {knownCount}개 계좌 소계 {digits(selected.knownCumulativeTopUp)}원</small>}<p>아직 추가 입금하지 않았다면 준비할 총액</p></div>
+    <div className="funding-timeline-kpi"><span>{dayLabel(date)} 추가 입금 부족액</span><strong className={selected.additionalTopUp===null?'account-funding-unknown':selected.additionalTopUp>0?'negative':''}><FinancialValue value={amount(selected.additionalTopUp)}/>{selected.additionalTopUp===null?'':'원'}</strong>{selected.additionalTopUp===null&&<small>확인된 {knownCount}개 계좌 소계 <FinancialValue value={digits(selected.knownAdditionalTopUp)}/>원</small>}<p>앞선 날짜의 필요액을 이미 넣었다면 그날 추가로 필요한 금액</p></div>
+    <div className="funding-timeline-kpi"><span>{dayLabel(date)}까지 누적 필요액</span><strong className={selected.cumulativeTopUp===null?'account-funding-unknown':selected.cumulativeTopUp>0?'negative':''}><FinancialValue value={amount(selected.cumulativeTopUp)}/>{selected.cumulativeTopUp===null?'':'원'}</strong>{selected.cumulativeTopUp===null&&<small>확인된 {knownCount}개 계좌 소계 <FinancialValue value={digits(selected.knownCumulativeTopUp)}/>원</small>}<p>아직 추가 입금하지 않았다면 준비할 총액</p></div>
    </div>
    <details className="funding-timeline-calculation-note"><summary>추가 입금과 누적 필요액의 차이</summary><p>추가 입금 부족액은 앞선 부족액을 채운 뒤 새로 필요한 금액입니다. 누적 필요액은 아직 입금하지 않았을 때 준비할 총액으로 날짜별 합산하지 않습니다. {hasSettlementIncome?'토스 입금 예정액은 지급일부터 반영하며 입금 전 부족액은 유지합니다. 그 밖의 예상 수입과 다른 통장 여유금은 제외합니다.':'예상 수입과 다른 통장의 여유금은 제외합니다.'}</p>{initialShortage>0&&<p>현재 음수 잔액 보충은 {dayLabel(timeline.days[0]?.date??asOf)}부터 포함하며 새 지출과 구분합니다.</p>}</details>
    </>:<p className="funding-timeline-detail-note">현재 잔액 기준일({asOf}) 이전 날짜입니다. 이 날짜의 출금을 현재 잔액에서 다시 차감하거나 과거 필요자금으로 계산하지 않습니다.</p>}

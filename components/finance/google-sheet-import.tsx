@@ -1,4 +1,6 @@
 "use client";
+import {FinancialText,useFinancialVisibility,FinancialValue} from './financial-visibility';
+
 
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {ArrowRight,CheckCircle2,ChevronDown,Download,FileSpreadsheet,History,Link2,LoaderCircle,RefreshCw,TriangleAlert} from 'lucide-react';
@@ -37,6 +39,7 @@ async function request<T>(body?:unknown):Promise<T>{
 }
 
 export function GoogleSheetImport({data,refresh}:{data:Dataset;refresh:()=>Promise<void>}){
+ const {privateText,amountsVisible}=useFinancialVisibility();
  const [url,setUrl]=useState('');
  const [linkOptionsOpen,setLinkOptionsOpen]=useState(false);
  const [preview,setPreview]=useState<ImportPreview|null>(null);
@@ -100,6 +103,7 @@ export function GoogleSheetImport({data,refresh}:{data:Dataset;refresh:()=>Promi
   setMappings(current=>current.map(item=>item.sheet===sheet?{...item,...patch}:item));setStale(true);setResult(null);setError('');setAllowPartial(false);
  }
  function downloadIssues(){
+  if(!amountsVisible)return;
   if(busy||!issues.length)return;
   const cell=(value:string|number)=>{
    const text=String(value);
@@ -132,7 +136,7 @@ export function GoogleSheetImport({data,refresh}:{data:Dataset;refresh:()=>Promi
    const next=await request<ImportPreview>({action:'preview',url:url.trim(),...(preview?{mappings}:{}),allowPartial});
    if(!mounted.current)return;
    setPreview(next);setMappings(next.sheets.map(sheet=>({sheet:sheet.name,account_id:sheet.account_id,selected:sheet.selected})));setAllowPartial(false);setStale(false);setIssueLimit(40);runId.current=crypto.randomUUID();
-  }catch(cause){if(mounted.current){const message=cause instanceof Error?cause.message:'시트를 확인하지 못했습니다.';setError(message);setStale(true);toast.error(message);}}
+  }catch(cause){if(mounted.current){const message=cause instanceof Error?cause.message:'시트를 확인하지 못했습니다.';setError(message);setStale(true);toast.error(<FinancialText value={String(message)}/>);}}
   finally{if(mounted.current)setLoading(false);}
  }
  async function apply(){
@@ -144,9 +148,9 @@ export function GoogleSheetImport({data,refresh}:{data:Dataset;refresh:()=>Promi
    if(!completion.refreshed)toast.warning('저장은 완료됐지만 화면 자료를 갱신하지 못했습니다. 자료 새로고침으로 다시 확인해주세요.');
    if(!mounted.current)return;
    setResult(completion.result);setImportRefreshFailed(!completion.refreshed);
-   if(completion.refreshed)toast.success(`신규 ${count(completion.result.inserted)}을 추가하고 화면 자료를 갱신했습니다. 기존 거래는 유지했습니다.`);
+   if(completion.refreshed)toast.success(<FinancialText value={String(`신규 ${count(completion.result.inserted)}을 추가하고 화면 자료를 갱신했습니다. 기존 거래는 유지했습니다.`)}/>);
    void loadHistory();
-  }catch(cause){if(mounted.current){const message=cause instanceof Error?cause.message:'반영 결과를 확인하지 못했습니다. 같은 버튼으로 다시 확인해주세요.';setError(message);toast.error(message);}}
+  }catch(cause){if(mounted.current){const message=cause instanceof Error?cause.message:'반영 결과를 확인하지 못했습니다. 같은 버튼으로 다시 확인해주세요.';setError(message);toast.error(<FinancialText value={String(message)}/>);}}
   finally{applying.current=false;if(mounted.current)setSaving(false);}
  }
  async function syncLatest(){
@@ -163,9 +167,9 @@ export function GoogleSheetImport({data,refresh}:{data:Dataset;refresh:()=>Promi
    setSyncResult(value);setSyncRefreshFailed(!completion.refreshed);
    if(preview){setStale(true);setResult(null);}
    const message=value.inserted?`신규 거래 ${count(value.inserted)}을 추가했습니다.`:'추가할 신규 거래가 없습니다.';
-   if(completion.refreshed){if(value.blocked)toast.warning(`${message} 화면 자료를 갱신했고, 확인이 필요한 ${count(value.blocked)}는 보류했습니다.`);else toast.success(`${message} 화면 자료를 갱신했습니다.`);}
+   if(completion.refreshed){if(value.blocked)toast.warning(<FinancialText value={String(`${message} 화면 자료를 갱신했고, 확인이 필요한 ${count(value.blocked)}는 보류했습니다.`)}/>);else toast.success(<FinancialText value={String(`${message} 화면 자료를 갱신했습니다.`)}/>);}
    void loadHistory();
-  }catch(cause){if(mounted.current){const message=cause instanceof Error?cause.message:'동기화 결과를 확인하지 못했습니다. 같은 버튼으로 다시 확인해주세요.';setSyncError(message);toast.error(message);}}
+  }catch(cause){if(mounted.current){const message=cause instanceof Error?cause.message:'동기화 결과를 확인하지 못했습니다. 같은 버튼으로 다시 확인해주세요.';setSyncError(message);toast.error(<FinancialText value={String(message)}/>);}}
   finally{applying.current=false;if(mounted.current)setSyncing(false);}
  }
  const syncIssues=[...new Map([...(syncResult?.sheets||[]).filter(sheet=>sheet.selected).flatMap(sheet=>sheet.errors.map(item=>({...item,sheet:sheet.name}))),...(syncResult?.conflicts||[])].map(issue=>[JSON.stringify([issue.sheet,issue.row,issue.message]),issue])).values()];
@@ -176,9 +180,9 @@ export function GoogleSheetImport({data,refresh}:{data:Dataset;refresh:()=>Promi
   </div>
   {syncing&&<p className="gs-caption" role="status">전체 통장 내역을 읽고 기존 거래와 비교하고 있습니다.</p>}
   {syncSettings&&!syncSettings.syncAvailable&&<p className="gs-caption">{syncSettings.syncUnavailableReason||'전체 통장을 동기화하려면 시트와 계좌 연결을 먼저 설정해주세요.'}</p>}
-  {syncError&&<div className="gs-warning" role="alert"><TriangleAlert size={17}/><span>{syncError} 최신 동기화를 다시 누르면 같은 실행 결과를 확인합니다.</span></div>}
+  {syncError&&<div className="gs-warning" role="alert"><TriangleAlert size={17}/><span><FinancialText value={String((syncError)??'')}/> 최신 동기화를 다시 누르면 같은 실행 결과를 확인합니다.</span></div>}
   {syncRefreshFailed&&refreshNotice()}
-  {syncResult&&<div className={syncRefreshFailed?'gs-policy':'gs-success'} role="status"><div>{syncRefreshFailed?<TriangleAlert size={20}/>:<CheckCircle2 size={20}/>}<strong>{syncRefreshFailed?'거래 저장 완료 · 화면 자료 미갱신':syncResult.blocked?'동기화 완료 · 일부 확인 필요':syncResult.inserted?'최신 동기화 완료':'최신 내역입니다'}</strong></div><p>신규 추가 {count(syncResult.inserted)} · 기존 유지 {count(syncResult.unchanged)} · 시트 중복 건너뜀 {count(syncResult.sourceDuplicates)} · 확인 필요 {count(syncResult.blocked)}</p><p>기존 거래 수정 {count(syncResult.updated)} · 삭제 {count(syncResult.removed)}{syncResult.sheets?` · ${syncResult.sheets.filter(sheet=>sheet.selected).length}개 통장 시트 확인`:''}</p>{syncResult.blocked>0&&<p>확인 필요 거래는 추가하지 않았습니다. 원본과 계좌 연결을 확인한 뒤 다시 동기화해주세요.</p>}{!!syncIssues.length&&<details className="gs-sync-issues"><summary>보류된 거래의 원본 위치와 사유 보기</summary><ul>{syncIssues.slice(0,syncIssueLimit).map((issue,index)=><li key={`${issue.sheet}:${issue.row}:${index}`}><strong>{issue.sheet} · {issue.row}행</strong> {issue.message}</li>)}</ul><p>전체 {syncIssues.length.toLocaleString()}개 중 {Math.min(syncIssueLimit,syncIssues.length).toLocaleString()}개 표시</p>{syncIssues.length>syncIssueLimit&&<Button className="mt-3" variant="outline" size="sm" disabled={busy} onClick={()=>setSyncIssueLimit(limit=>limit+40)}>다음 {Math.min(40,syncIssues.length-syncIssueLimit)}개 보기<ChevronDown size={15}/></Button>}</details>}</div>}
+  {syncResult&&<div className={syncRefreshFailed?'gs-policy':'gs-success'} role="status"><div>{syncRefreshFailed?<TriangleAlert size={20}/>:<CheckCircle2 size={20}/>}<strong>{syncRefreshFailed?'거래 저장 완료 · 화면 자료 미갱신':syncResult.blocked?'동기화 완료 · 일부 확인 필요':syncResult.inserted?'최신 동기화 완료':'최신 내역입니다'}</strong></div><p>신규 추가 {count(syncResult.inserted)} · 기존 유지 {count(syncResult.unchanged)} · 시트 중복 건너뜀 {count(syncResult.sourceDuplicates)} · 확인 필요 {count(syncResult.blocked)}</p><p>기존 거래 수정 {count(syncResult.updated)} · 삭제 {count(syncResult.removed)}{syncResult.sheets?` · ${syncResult.sheets.filter(sheet=>sheet.selected).length}개 통장 시트 확인`:''}</p>{syncResult.blocked>0&&<p>확인 필요 거래는 추가하지 않았습니다. 원본과 계좌 연결을 확인한 뒤 다시 동기화해주세요.</p>}{!!syncIssues.length&&<details className="gs-sync-issues"><summary>보류된 거래의 원본 위치와 사유 보기</summary><ul>{syncIssues.slice(0,syncIssueLimit).map((issue,index)=><li key={`${issue.sheet}:${issue.row}:${index}`}><strong><FinancialText value={String((issue.sheet)??'')}/> · {issue.row}행</strong> <FinancialText value={String((issue.message)||'')}/></li>)}</ul><p>전체 {syncIssues.length.toLocaleString()}개 중 {Math.min(syncIssueLimit,syncIssues.length).toLocaleString()}개 표시</p>{syncIssues.length>syncIssueLimit&&<Button className="mt-3" variant="outline" size="sm" disabled={busy} onClick={()=>setSyncIssueLimit(limit=>limit+40)}>다음 {Math.min(40,syncIssues.length-syncIssueLimit)}개 보기<ChevronDown size={15}/></Button>}</details>}</div>}
   <details className="gs-link-options" open={linkOptionsOpen} onToggle={event=>setLinkOptionsOpen(event.currentTarget.open)}>
    <summary><Link2 size={15}/>링크 미리보기·계좌 연결<ChevronDown size={15}/></summary>
   <div className="gs-source">
@@ -188,14 +192,14 @@ export function GoogleSheetImport({data,refresh}:{data:Dataset;refresh:()=>Promi
   </div>
   <p className="gs-caption">선택한 시트의 전체 기간을 확인하고 동일 거래는 중복 제외합니다.</p>
   </details>
-  {error&&<div className="gs-warning" role="alert"><TriangleAlert size={17}/><span>{error}</span></div>}
+  {error&&<div className="gs-warning" role="alert"><TriangleAlert size={17}/><span><FinancialText value={String((error)||'')}/></span></div>}
   {preview&&<div className="gs-preview">
    {importRefreshFailed&&refreshNotice()}
    <div className={'gs-preview-status '+(result&&!importRefreshFailed?'gs-preview-saved':'')} role="status">
     {importRefreshFailed?<TriangleAlert size={21}/>:result?<CheckCircle2 size={21}/>:<FileSpreadsheet size={21}/>}
     <div><strong>{result?importRefreshFailed?'저장 완료 · 화면 갱신 필요':'반영 완료':'미리보기 · 아직 저장되지 않음'}</strong><p>{result?`신규 ${count(result.inserted)} 저장`:'계좌와 계정과목을 확인한 뒤 추가하세요.'}</p></div>
    </div>
-   <div className={'gs-plan '+(stale?'gs-plan-stale':'')} aria-label={result?'실제 반영 결과':'시트 반영 예상 결과'}><Summary value={result||preview.summary}/></div>
+   <div className={'gs-plan '+(stale?'gs-plan-stale':'')} aria-label={privateText(String(result?'실제 반영 결과':'시트 반영 예상 결과'))}><Summary value={result||preview.summary}/></div>
    <div className="gs-apply gs-apply-top"><div><p>{applyMessage}</p>{hasIssues&&!allowPartial&&!result&&<a href="#gs-import-review">확인 필요 행 검토하기 <ArrowRight size={13}/></a>}</div><Button disabled={!canApply} onClick={()=>void apply()}>{saving?<LoaderCircle size={16} className="animate-spin"/>:result?<CheckCircle2 size={16}/>:<ArrowRight size={16}/>} {applyLabel}</Button></div>
    <p className="gs-caption">{result?'저장 결과':'저장 전 예상'} · 시트 중복 {count(preview.summary.sourceDuplicates)} 제외{stale?' · 변경 내용 재확인 필요':''}</p>
    {(categoryCounts.unregistered>0||categoryCounts.needs_review>0)&&<div className="gs-category-notice"><TriangleAlert size={17}/><div><strong>선택한 시트의 계정과목 확인이 필요합니다</strong><p>{categoryCounts.unregistered>0?`미등록 과목 ${count(categoryCounts.unregistered)}`:''}{categoryCounts.unregistered>0&&categoryCounts.needs_review>0?' · ':''}{categoryCounts.needs_review>0?`원본도 세부 분류 필요 ${count(categoryCounts.needs_review)}`:''}. 아래에서 원본 과목과 대시보드 인식 과목을 비교하세요.</p><p>미등록·세부 분류 필요 과목은 자동으로 추정하지 않습니다. 기존 거래에 유효한 분류가 있으면 유지합니다.</p></div></div>}
@@ -203,15 +207,15 @@ export function GoogleSheetImport({data,refresh}:{data:Dataset;refresh:()=>Promi
    {!preview.sheets.length&&<p className="gs-empty">거래로 인식할 수 있는 시트가 없습니다. 거래일자·입금·출금 열이 있는지 확인해주세요.</p>}
    <fieldset disabled={busy||!!result} className="gs-sheet-list">
     {preview.sheets.map(sheet=>{const mapping=mappings.find(item=>item.sheet===sheet.name);return <div key={sheet.name} className={'gs-sheet '+(!mapping?.selected?'gs-sheet-excluded':'')}>
-     <div className="gs-sheet-top"><label className="gs-sheet-check"><Checkbox checked={mapping?.selected||false} disabled={busy||!!result} onCheckedChange={checked=>changeMapping(sheet.name,{selected:checked===true})}/><strong>{sheet.name}</strong><span>{count(sheet.count)}</span></label><div className="gs-sheet-account"><span>저장 계좌</span><Picker label={`${sheet.name} 저장 계좌`} value={mapping?.account_id||'none'} onChange={value=>{if(!busy&&!result)changeMapping(sheet.name,{account_id:value==='none'?null:value});}} options={accountOptions}/></div></div>
-     <div className="gs-sheet-meta"><span>{sheet.from?`${sheet.from} ~ ${sheet.to||sheet.from}`:'인식한 거래일자 없음'}</span><span>원본 입금 <b className="positive">{money(sheet.income)}</b></span><span>원본 출금 <b className="negative">{money(sheet.expense)}</b></span>{!!sheet.errors.length&&<span className="negative">확인 필요 {sheet.errors.length}행</span>}{mapping?.selected&&!mapping.account_id&&<span className="negative">계좌 선택 필요</span>}</div>
+     <div className="gs-sheet-top"><label className="gs-sheet-check"><Checkbox checked={mapping?.selected||false} disabled={busy||!!result} onCheckedChange={checked=>changeMapping(sheet.name,{selected:checked===true})}/><strong><FinancialText value={sheet.name}/></strong><span>{count(sheet.count)}</span></label><div className="gs-sheet-account"><span>저장 계좌</span><Picker label={privateText(String(`${sheet.name} 저장 계좌`))} value={mapping?.account_id||'none'} onChange={value=>{if(!busy&&!result)changeMapping(sheet.name,{account_id:value==='none'?null:value});}} options={accountOptions}/></div></div>
+     <div className="gs-sheet-meta"><span>{sheet.from?`${sheet.from} ~ ${sheet.to||sheet.from}`:'인식한 거래일자 없음'}</span><span>원본 입금 <b className="positive"><FinancialValue value={money(sheet.income)}/></b></span><span>원본 출금 <b className="negative"><FinancialValue value={money(sheet.expense)}/></b></span>{!!sheet.errors.length&&<span className="negative">확인 필요 {sheet.errors.length}행</span>}{mapping?.selected&&!mapping.account_id&&<span className="negative">계좌 선택 필요</span>}</div>
      {!!sheet.categoryIssues?.length&&<div className="gs-category-issues"><strong>원본 계정과목 확인</strong><ul>{sheet.categoryIssues.map(issue=><li key={`${issue.status}:${issue.rawName}`}><span>{issue.rawName||'빈 과목'} <small className={issue.status==='unregistered'?'gs-category-unregistered':'gs-category-review'}>{issue.status==='unregistered'?'미등록':'원본도 세부 분류 필요'}</small></span><b>{count(issue.count)}</b></li>)}</ul></div>}
-     {!!sheet.sample.length&&<details className="gs-samples"><summary><ChevronDown size={15}/>거래·계정과목 미리보기 <small>{sheet.sample.length}건</small></summary><Table><TableHeader><TableRow><TableHead>거래일자</TableHead><TableHead>구분</TableHead><TableHead>거래내용</TableHead><TableHead>시트 원본 계정과목</TableHead><TableHead>대시보드 인식 과목</TableHead><TableHead className="gs-number">금액</TableHead><TableHead className="gs-number">거래 후 잔액</TableHead></TableRow></TableHeader><TableBody>{sheet.sample.map((transaction,index)=><TableRow key={index}><TableCell>{transaction.txn_date}</TableCell><TableCell className={transaction.direction==='in'?'positive':'negative'}>{transaction.direction==='in'?'입금':'출금'}</TableCell><TableCell>{transaction.description||'—'}</TableCell><TableCell className="gs-category-cell"><span>{transaction.raw_category||'—'}</span>{transaction.category_status==='unregistered'&&<small className="gs-category-unregistered">미등록</small>}{transaction.category_status==='needs_review'&&<small className="gs-category-review">원본도 세부 분류 필요</small>}{transaction.category_status==='blank'&&<small>원본 비어 있음</small>}</TableCell><TableCell className="gs-category-cell"><span>{transaction.category_name||'미매핑'}</span>{transaction.category_status==='blank'&&<small>기존 거래는 기존 분류 유지</small>}</TableCell><TableCell className="gs-number">{money(transaction.amount)}</TableCell><TableCell className="gs-number">{transaction.balance===null?'—':money(transaction.balance)}</TableCell></TableRow>)}</TableBody></Table></details>}
+     {!!sheet.sample.length&&<details className="gs-samples"><summary><ChevronDown size={15}/>거래·계정과목 미리보기 <small>{sheet.sample.length}건</small></summary><Table><TableHeader><TableRow><TableHead>거래일자</TableHead><TableHead>구분</TableHead><TableHead>거래내용</TableHead><TableHead>시트 원본 계정과목</TableHead><TableHead>대시보드 인식 과목</TableHead><TableHead className="gs-number">금액</TableHead><TableHead className="gs-number">거래 후 잔액</TableHead></TableRow></TableHeader><TableBody>{sheet.sample.map((transaction,index)=><TableRow key={index}><TableCell>{transaction.txn_date}</TableCell><TableCell className={transaction.direction==='in'?'positive':'negative'}>{transaction.direction==='in'?'입금':'출금'}</TableCell><TableCell><FinancialText value={String((transaction.description||'—')||'')}/></TableCell><TableCell className="gs-category-cell"><span>{transaction.raw_category||'—'}</span>{transaction.category_status==='unregistered'&&<small className="gs-category-unregistered">미등록</small>}{transaction.category_status==='needs_review'&&<small className="gs-category-review">원본도 세부 분류 필요</small>}{transaction.category_status==='blank'&&<small>원본 비어 있음</small>}</TableCell><TableCell className="gs-category-cell"><span>{transaction.category_name||'미매핑'}</span>{transaction.category_status==='blank'&&<small>기존 거래는 기존 분류 유지</small>}</TableCell><TableCell className="gs-number"><FinancialValue value={money(transaction.amount)}/></TableCell><TableCell className="gs-number"><FinancialValue value={transaction.balance===null?'—':money(transaction.balance)}/></TableCell></TableRow>)}</TableBody></Table></details>}
     </div>;})}
    </fieldset>
    {stale&&<div className="gs-warning" role="status"><RefreshCw size={17}/><span>선택한 시트 또는 계좌가 바뀌었습니다. 위의 <strong>변경 내용 다시 확인</strong>을 눌러 반영할 거래를 다시 확인해주세요.</span></div>}
    <p className="gs-caption">시트별 금액은 중복·보류 제외 전 합계입니다. 동일 거래만 중복 제외합니다.</p>
-   {hasIssues&&<div className="gs-review" id="gs-import-review"><div className="gs-review-heading"><TriangleAlert size={18}/><strong>확인이 필요한 거래가 있습니다.</strong></div><p>확인 필요 거래는 자동으로 바꾸지 않습니다. 원본을 수정한 후 다시 확인하거나, 정상 거래만 먼저 반영할 수 있습니다.</p>{!!issues.length&&<><Button className="mt-3" variant="outline" size="sm" disabled={busy} onClick={downloadIssues}><Download size={15}/>확인 필요 전체 {issues.length.toLocaleString()}개 다운로드 · CSV</Button><details><summary>확인 사항 {issues.length.toLocaleString()}개 보기</summary><ul>{issues.slice(0,issueLimit).map((issue,index)=><li key={`${issue.sheet}:${issue.row}:${index}`}><strong>{issue.sheet} · {issue.row}행</strong><span>{issue.message}</span></li>)}</ul><p aria-live="polite">전체 {issues.length.toLocaleString()}개 중 {Math.min(issueLimit,issues.length).toLocaleString()}개 표시{issues.length>issueLimit?` · 남은 ${ (issues.length-issueLimit).toLocaleString()}개`:''}</p>{issues.length>issueLimit&&<Button className="mt-3" variant="outline" size="sm" disabled={busy} onClick={()=>setIssueLimit(limit=>limit+40)}>다음 {Math.min(40,issues.length-issueLimit)}개 보기<ChevronDown size={15}/></Button>}</details></>}<label className="gs-partial"><Checkbox checked={allowPartial} disabled={busy||!!result||stale} onCheckedChange={checked=>setAllowPartial(checked===true)}/><span>확인 필요 행을 제외하고 정상 거래만 반영</span></label></div>}
+   {hasIssues&&<div className="gs-review" id="gs-import-review"><div className="gs-review-heading"><TriangleAlert size={18}/><strong>확인이 필요한 거래가 있습니다.</strong></div><p>확인 필요 거래는 자동으로 바꾸지 않습니다. 원본을 수정한 후 다시 확인하거나, 정상 거래만 먼저 반영할 수 있습니다.</p>{!!issues.length&&<><Button className="mt-3" variant="outline" size="sm" disabled={busy||!amountsVisible} title={!amountsVisible?'금액 표시를 켜면 내려받을 수 있습니다':undefined} onClick={downloadIssues}><Download size={15}/>확인 필요 전체 {issues.length.toLocaleString()}개 다운로드 · CSV</Button><details><summary>확인 사항 {issues.length.toLocaleString()}개 보기</summary><ul>{issues.slice(0,issueLimit).map((issue,index)=><li key={`${issue.sheet}:${issue.row}:${index}`}><strong><FinancialText value={String((issue.sheet)??'')}/> · {issue.row}행</strong><span><FinancialText value={String((issue.message)||'')}/></span></li>)}</ul><p aria-live="polite">전체 {issues.length.toLocaleString()}개 중 {Math.min(issueLimit,issues.length).toLocaleString()}개 표시{issues.length>issueLimit?` · 남은 ${ (issues.length-issueLimit).toLocaleString()}개`:''}</p>{issues.length>issueLimit&&<Button className="mt-3" variant="outline" size="sm" disabled={busy} onClick={()=>setIssueLimit(limit=>limit+40)}>다음 {Math.min(40,issues.length-issueLimit)}개 보기<ChevronDown size={15}/></Button>}</details></>}<label className="gs-partial"><Checkbox checked={allowPartial} disabled={busy||!!result||stale} onCheckedChange={checked=>setAllowPartial(checked===true)}/><span>확인 필요 행을 제외하고 정상 거래만 반영</span></label></div>}
    <div className="gs-apply"><p>{applyMessage}</p><Button disabled={!canApply} onClick={()=>void apply()}>{saving?<LoaderCircle size={16} className="animate-spin"/>:result?<CheckCircle2 size={16}/>:<ArrowRight size={16}/>} {applyLabel}</Button></div>
    {result&&<div className="gs-success" role="status"><div><CheckCircle2 size={20}/><strong>거래에 반영했습니다</strong></div><p>신규 {count(result.inserted)} · 기존 유지 {count(result.unchanged)} · 기존 거래 수정 0건 · 삭제 0건</p>{result.blocked>0&&<p>확인 필요 {count(result.blocked)}는 제외했습니다.</p>}</div>}
   </div>}

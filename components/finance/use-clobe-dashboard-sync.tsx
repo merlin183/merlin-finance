@@ -1,5 +1,6 @@
 "use client";
 
+import {FinancialText} from './financial-visibility';
 import {createContext,useCallback,useContext,useEffect,useMemo,useRef,useState,useSyncExternalStore,type ReactNode} from 'react';
 import {LoaderCircle,RefreshCw} from 'lucide-react';
 import {toast} from 'sonner';
@@ -24,12 +25,12 @@ export function ClobeDashboardSyncProvider({actorKey,refresh,accounts,businesses
   if((snapshot.phase!=='done'&&snapshot.phase!=='refresh-needed')||!result||announced.current===result)return;
   announced.current=result;
   const title=clobeDashboardSyncResultTitle(result),description=clobeDashboardSyncResultLine(result);
-  if(result.fullSuccess&&!result.ledger.unclassified)toast.success(title,{description});
-  else toast.warning(title,{description});
+  if(result.fullSuccess&&!result.ledger.unclassified)toast.success(<FinancialText value={String(title)}/>,{description});
+  else toast.warning(<FinancialText value={String(title)}/>,{description});
  },[snapshot.phase,snapshot.result]);
  const read=useCallback(()=>refreshRef.current(),[]);
- const start=useCallback(()=>{const task=clobeDashboardSyncCoordinator.start({actorKey,refresh:read});void task?.catch(cause=>toast.error(cause instanceof Error?cause.message:'최신 동기화 결과를 확인하지 못했습니다.'));},[actorKey,read]);
- const retryRefresh=useCallback(()=>{const task=clobeDashboardSyncCoordinator.retryRefresh({actorKey,refresh:read});void task?.catch(cause=>toast.error(cause instanceof Error?cause.message:'화면 자료를 다시 조회하지 못했습니다.'));},[actorKey,read]);
+ const start=useCallback(()=>{const task=clobeDashboardSyncCoordinator.start({actorKey,refresh:read});void task?.catch(cause=>toast.error(<FinancialText value={String(cause instanceof Error?cause.message:'최신 동기화 결과를 확인하지 못했습니다.')}/>));},[actorKey,read]);
+ const retryRefresh=useCallback(()=>{const task=clobeDashboardSyncCoordinator.retryRefresh({actorKey,refresh:read});void task?.catch(cause=>toast.error(<FinancialText value={String(cause instanceof Error?cause.message:'화면 자료를 다시 조회하지 못했습니다.')}/>));},[actorKey,read]);
  const showResult=useCallback(()=>setOpen(true),[]);
  const busy=clobeDashboardSyncBusy(snapshot.phase);
  const value=useMemo(()=>({snapshot,busy,start,retryRefresh,showResult}),[snapshot,busy,start,retryRefresh,showResult]);
