@@ -7,6 +7,9 @@ import {buildEditableCashPlan} from '../lib/finance/editable-cash-plan';
 import {buildCashPlanWorksheetModel} from '../lib/finance/cash-plan-worksheet-model';
 import {buildLatestCashBalances} from '../lib/finance/latest-cash-balances';
 import {cashEstimateSourceKey} from '../lib/finance/cash-estimates';
+import {cashPlanPaymentConfirmationChange} from '../lib/finance/cash-plan-payment-confirmation';
+import {mergeCashPlanCategory} from '../lib/finance/cash-plan-category';
+import {cashPlanActualCategoryConflict} from '../components/finance/cash-plan-actual-category-dialog';
 import type {CashPlanEdit} from '../lib/finance/cash-plan-edits';
 import type {BankPlanActual,BankPlanCoverage} from '../lib/finance/clobe-plan-actuals';
 import {emptyDataset,type Dataset,type Transaction} from '../lib/finance/types';
@@ -20,7 +23,7 @@ const dataset=(transactions:Transaction[]=[],extra:Partial<Dataset>={}):Dataset=
  accounts:[{id:'account',business_id:'business',name:'합성 계좌',bank:'합성 은행',masked_number:'0001',opening_balance:2000000,opening_balance_date:'2027-03-31'}],
  categories:[{id:'fees',name:'합성 비용',group_name:'영업지출',is_internal:false,is_operating:true}],transactions,...extra,
 });
-function render(data:Dataset,basis:'estimated'|'registered'='estimated',edits:CashPlanEdit[]=[],options:{saving?:boolean;confirmingKey?:string;range?:typeof range;asOf?:string}={}){
+function render(data:Dataset,basis:'estimated'|'registered'='estimated',edits:CashPlanEdit[]=[],options:{saving?:boolean;confirmingKey?:string;range?:typeof range;asOf?:string;onEditActualCategory?:()=>void}={}){
  const {range:selected=range,asOf:now=asOf,...componentOptions}=options;
  const editable=buildEditableCashPlan(data,selected,now,edits);
  const worksheet=buildCashPlanWorksheetModel({data,editable,basis,range:selected,asOf:now});
@@ -52,6 +55,55 @@ test('간결한 표는 소진·지난 날짜를 보존하고 다른 금액만 �
  assert.match(html,/지출 후 잔액<\/dt><dd class="">1,400,000/);
  assert.match(html,/잔액은 남은 예산만 차감/);
  assert.match(html,/계획 편집/);assert.match(html,/기간 전체 계획 · 3건/);
+});
+
+test('같은 계좌·상대방의 서로 다른 과목 계획을 기존 3열 안의 과목명으로 구분한다',()=>{
+ const categories=[{id:'fees',name:'합성 수수료',group_name:'영업지출',is_internal:false,is_operating:true},{id:'salary',name:'합성 급여',group_name:'영업지출',is_internal:false,is_operating:true}];
+ const history=['01','02','03'].flatMap(month=>categories.map((category,index)=>({...transaction(`${category.id}-${month}`,`2027-${month}-05`,(index+1)*100000,'합성 동일 상대방'),category_id:category.id})));
+ const html=render(dataset(history,{categories})),tbody=html.match(/<tbody>([\s\S]*?)<\/tbody>/)![1];
+ assert.equal((tbody.match(/<tr/g)||[]).length,2);
+ assert.equal((tbody.match(/합성 동일 상대방/g)||[]).length,4);
+ assert.match(tbody,/cash-worksheet-plan-category">합성 수수료/);assert.match(tbody,/cash-worksheet-plan-category">합성 급여/);
+ assert.equal((html.match(/<th scope="col">/g)||[]).length,3);
+ assert.match(html,/남은 지출 합계<\/strong><b>300,000/);
+});
+
+test('계획에 지정한 과목만 표시하며 메모의 내부 표식과 원장 과목은 노출·수정하지 않는다',()=>{
+ const categoryId='00000000-0000-4000-8000-000000000001';
+ const data=dataset([],{categories:[{id:categoryId,name:'합성 계획 과목',group_name:'영업지출',is_internal:false,is_operating:true}]});
+ const edit:CashPlanEdit={id:'manual-category',business_id:'business',source_type:'manual',source_key:'manual-category',month:'2027-04',title:'합성 계획',account_id:'account',plan_date:'2027-04-15',amount:50000,memo:mergeCashPlanCategory('담당자 메모',categoryId),excluded:false,version:1,updated_at:'2027-04-12T00:00:00Z'};
+ const before=JSON.stringify({data,edit}),html=render(data,'registered',[edit]);
+ assert.match(html,/cash-worksheet-plan-category">합성 계획 과목/);assert.doesNotMatch(html,/cash-plan-category|담당자 메모/);
+ assert.equal(JSON.stringify({data,edit}),before);
+});
+
+test('은행 조회로 표시해도 저장 원장에 연결된 실제 거래만 과목 수정을 제공한다',()=>{
+ const saved=transaction('saved-actual','2027-04-06',60000,'합성 일회 출금');
+ const provider={...bankActual(60000,'합성 일회 출금'),transaction_id:saved.id,source_details:{basic:'대여금'}};
+ const data=dataset([saved],{bank_plan_actuals:[provider],bank_plan_coverage:[bankCoverage()]});
+ const before=JSON.stringify(data),html=render(data,'estimated',[],{onEditActualCategory:()=>{}}),tbody=html.match(/<tbody>([\s\S]*?)<\/tbody>/)![1];
+ assert.match(tbody,/은행 조회/);assert.match(tbody,/합성 비용/);assert.match(tbody,/실제 거래 과목 수정/);assert.match(tbody,/>과목 수정<\/button>/);
+ assert.doesNotMatch(tbody,/불러오기·분류|>대여금<|출금 확인/);
+ assert.equal(JSON.stringify(data),before);
+ const busy=render(data,'estimated',[],{onEditActualCategory:()=>{},saving:true});
+ assert.match(busy,/<button[^>]*aria-label="[^"]*실제 거래 과목 수정"[^>]*disabled=""/);
+});
+
+test('원장 미적용 은행 출금은 직접 과목 변경 대신 해당 사업자의 불러오기·분류로 연결한다',()=>{
+ const data=dataset([],{bank_plan_actuals:[bankActual(60000,'합성 미적용 출금')],bank_plan_coverage:[bankCoverage()]});
+ const html=render(data,'estimated',[],{onEditActualCategory:()=>{}}),tbody=html.match(/<tbody>([\s\S]*?)<\/tbody>/)![1];
+ assert.match(tbody,/은행 조회/);assert.match(tbody,/href="\/upload\?biz=business"/);assert.match(tbody,/불러오기·분류/);
+ assert.doesNotMatch(tbody,/<button|과목 수정|출금 확인/);assert.equal(data.transactions.length,0);
+});
+
+test('실제 과목 편집 중 공동 과목·금융 정보 변경 또는 저장 거래 삭제는 충돌로 보존한다',()=>{
+ const original=transaction('saved-actual','2027-04-06',60000,'합성 일회 출금');
+ assert.equal(cashPlanActualCategoryConflict(original,{...original}),false);
+ assert.equal(cashPlanActualCategoryConflict(original,undefined),true);
+ for(const patch of [{category_id:'other'},{is_internal:true},{manually_classified:true},{amount:65000},{account_id:'other-account'},{txn_date:'2027-04-07'},{transfer_fee_amount:500},{transfer_fee_category_id:'synthetic-fee-category'}])assert.equal(cashPlanActualCategoryConflict(original,{...original,...patch}),true);
+ const split={...original,transfer_fee_amount:500,transfer_fee_category_id:'synthetic-fee-category'};
+ assert.equal(cashPlanActualCategoryConflict(split,{...split,transfer_fee_amount:1000}),true);
+ assert.equal(cashPlanActualCategoryConflict(split,{...split,transfer_fee_category_id:'other-fee-category'}),true);
 });
 
 test('실적을 연결하지 않은 직접·등록 항목은 화면에서 0원이나 지급 완료로 단정하지 않는다',()=>{
@@ -235,7 +287,7 @@ test('날짜 미정 11월 2일 실제 출금이 5일·6일 예정 항목보다 �
  const rows=[...tbody.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)].map(item=>item[1]);
  assert.equal(rows.length,3);
  assert.deepEqual(rows.map(row=>row.match(/<time dateTime="([^"]+)"/i)![1]),['2027-11-02','2027-11-05','2027-11-06']);
- assert.match(rows[0],/합성 다회 결제<\/span><span class="cash-worksheet-actual-date-badge">실제 출금/);
+ assert.match(rows[0],/합성 다회 결제<\/span>[\s\S]*<span class="cash-worksheet-actual-date-badge">실제 출금/);
  assert.match(rows[0],/cash-worksheet-actual">[\s\S]*70,000<\/span>/);
  assert.match(rows[0],/남은 월예산 130,000 <span>· 일자 미정/);
  assert.doesNotMatch(rows[0],/cash-worksheet-undated|2027-11-15|04\/01/);
@@ -272,8 +324,8 @@ test('지정 계획의 조기·지연 실제 출금을 실제 날짜순으로 �
  const tbody=html.match(/<tbody>([\s\S]*?)<\/tbody>/)![1];
  const rows=[...tbody.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)].map(item=>item[1]);
  assert.deepEqual(rows.map(row=>row.match(/<time dateTime="([^"]+)"/i)![1]),['2027-04-02','2027-04-05','2027-04-10']);
- assert.match(rows[0],/합성 조기 지급<\/span><span class="cash-worksheet-actual-date-badge">실제 출금/);
- assert.match(rows[2],/합성 지연 지급<\/span><span class="cash-worksheet-actual-date-badge">실제 출금/);
+ assert.match(rows[0],/합성 조기 지급<\/span>[\s\S]*<span class="cash-worksheet-actual-date-badge">실제 출금/);
+ assert.match(rows[2],/합성 지연 지급<\/span>[\s\S]*<span class="cash-worksheet-actual-date-badge">실제 출금/);
  assert.doesNotMatch(rows[0]+rows[2],/남은 예정|cash-worksheet-payment-date|2027-04-15|2027-04-01/);
  assert.equal((rows[0].match(/<time /g)||[]).length,1);assert.equal((rows[2].match(/<time /g)||[]).length,1);
  assert.match(html,/남은 지출 합계<\/strong><b>50,000/);
@@ -362,4 +414,38 @@ test('수동 완료된 지급일 뒤에 적은 실제 출금이 있어도 원본
  assert.equal((tbody.match(/4,000/g)||[]).length,1);
  assert.match(html,/기간 전체 계획 · 1건 · 별도 실제 1건/);
  assert.match(html,/남은 지출 합계<\/strong><b>0/);
+});
+
+
+test('명시적 반환은 순지출·출금·반환을 구분하고 원래 실제 출금 행을 중복 표시하지 않는다',()=>{
+ const history=['01','02','03'].map(month=>transaction('return-history-'+month,'2027-'+month+'-05',150000,'합성 반환 서비스'));
+ const data=dataset([...history,transaction('returned-gross','2027-04-06',180000,'합성 반환 서비스')]);
+ const editable=buildEditableCashPlan(data,range,asOf,[]),item=editable.items.find(row=>row.title==='합성 반환 서비스')!;
+ const before=JSON.stringify(data);
+ for(const returnedAmount of [63000,180000]){
+  const {action,...change}=cashPlanPaymentConfirmationChange(item,{amount:180000,date:'2027-04-06',complete:true,memo:'합성 반환 확인',returnedAmount,returnedDate:'2027-04-08'});
+  assert.equal(action,'payment_confirmation');
+  const edit:CashPlanEdit={...change,version:1,updated_at:'2027-04-12T00:00:00Z'};
+  const html=render(data,'estimated',[edit]),tbody=html.match(/<tbody>([\s\S]*?)<\/tbody>/)![1];
+  assert.match(tbody,/cash-worksheet-net-label">순지출/);assert.match(tbody,new RegExp('<strong>'+(180000-returnedAmount).toLocaleString('ko-KR')+'<\\/strong>'));
+  assert.match(tbody,/출금 180,000/);assert.match(tbody,new RegExp('반환 '+returnedAmount.toLocaleString('ko-KR')));
+  assert.match(tbody,/dateTime="2027-04-06"/);assert.doesNotMatch(tbody,/cash-worksheet-actual-only-row|cash-plan-return/);
+  assert.equal((tbody.match(/<tr/g)||[]).length,1);assert.match(html,/남은 지출 합계<\/strong><b>0/);
+ }
+ assert.equal(JSON.stringify(data),before);
+});
+
+
+test('기간 예산의 반환 표시는 선택 기간의 출금만 사용하고 범위 밖 확인 총액을 다시 더하지 않는다',()=>{
+ const history=['01','02','03'].flatMap(month=>[transaction('return-early-'+month,'2027-'+month+'-02',100000,'합성 기간 반환'),transaction('return-late-'+month,'2027-'+month+'-15',100000,'합성 기간 반환')]);
+ const data=dataset([...history,transaction('return-before','2027-04-02',60000,'합성 기간 반환'),transaction('return-within','2027-04-10',30000,'합성 기간 반환')]);
+ const item=buildEditableCashPlan(data,range,asOf,[]).items.find(row=>row.title==='합성 기간 반환')!;
+ assert.equal(item.date,null);
+ const {action,...change}=cashPlanPaymentConfirmationChange(item,{amount:90000,date:'2027-04-08',complete:false,returnedAmount:20000,returnedDate:'2027-04-10'});
+ assert.equal(action,'payment_confirmation');
+ const saved:CashPlanEdit={...change,version:1,updated_at:'2027-04-12T00:00:00Z'};
+ const html=render(data,'estimated',[saved],{range:{from:'2027-04-09',to:'2027-04-12'}}),tbody=html.match(/<tbody>([\s\S]*?)<\/tbody>/)![1];
+ assert.match(tbody,/cash-worksheet-net-label">순지출<\/span><strong>10,000<\/strong>/);assert.match(tbody,/출금 30,000/);assert.match(tbody,/반환 20,000/);assert.doesNotMatch(tbody,/90,000|70,000/);
+ const outside=render(data,'estimated',[saved],{range:{from:'2027-04-11',to:'2027-04-12'}});
+ assert.doesNotMatch(outside,/cash-worksheet-net-label|cash-worksheet-returned/);
 });

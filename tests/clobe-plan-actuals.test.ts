@@ -9,6 +9,8 @@ import {buildFundingReport} from '../lib/finance/funding-report';
 import {buildCurrentCashForecast} from '../lib/finance/cash-plan';
 import {emptyDataset,type Dataset,type Transaction} from '../lib/finance/types';
 import type {CashPlanEdit} from '../lib/finance/cash-plan-edits';
+import {cashEstimateSourceIdentity,mergeCashPlanCategory,readCashPlanCategory,cashPlanCategoryMemoError} from '../lib/finance/cash-plan-category';
+import {cashPlanMemoDisplay,cashPlanUserMemo,mergeCashPlanUserMemo} from '../lib/finance/cash-plan-memo';
 
 const range={from:'2027-04-01',to:'2027-04-30'},asOf='2027-04-12',collected='2027-04-12T09:00:00+09:00';
 const row=(id:string,date:string,amount:number,extra:Partial<Transaction>={}):Transaction=>({id,business_id:'b1',account_id:'a1',txn_date:date,txn_time:'12:00:00',amount,balance:900,direction:'out',description:'Synthetic service',upload_id:null,raw_gwamok:'',category_id:'fees',is_internal:false,tax_invoice:false,dedup_hash:id,manually_classified:false,...extra});
@@ -23,6 +25,186 @@ function review(data:Dataset,edits:CashPlanEdit[]=[],basis:'estimated'|'register
  assert.equal(JSON.stringify({data,edits}),before);
  return {editable,worksheet,rows:worksheet.businesses[0].rows};
 }
+
+const salaryCategory='30000000-0000-4000-8000-000000000001',adsCategory='30000000-0000-4000-8000-000000000002',loanCategory='30000000-0000-4000-8000-000000000003';
+const personRow=(id:string,date:string,amount:number,category_id:string|null=salaryCategory,extra:Partial<Transaction>={})=>row(id,date,amount,{category_id,description:'Synthetic recipient',source_details:{counterparty:'Synthetic recipient'},...extra});
+const categoryData=(transactions:Transaction[],extra:Partial<Dataset>={}):Dataset=>dataset({categories:[
+ {id:salaryCategory,name:'급여',group_name:'영업지출',is_internal:false,is_operating:true},
+ {id:adsCategory,name:'광고선전비',group_name:'영업지출',is_internal:false,is_operating:true},
+ {id:loanCategory,name:'대여금',group_name:'내부이동',is_internal:true,is_operating:false},
+ ],transactions,...extra});
+const personHistory=(categoryId=salaryCategory,amount=100,prefix='salary')=>['01','02','03'].map(month=>personRow(`${prefix}-${month}`,`2027-${month}-10`,amount,categoryId));
+
+test('same recipient salary history remains eligible beside loans, and loan actual never consumes salary',()=>{
+ const salary=personHistory(),loan=personRow('loan-actual','2027-04-10',100,loanCategory,{txn_time:'13:00:00',balance:800});
+ const paid=personRow('salary-actual','2027-04-10',100,salaryCategory,{txn_time:'12:00:00',balance:900});
+ const data=categoryData([...salary,...personHistory(loanCategory,30,'loan'),paid,loan]);
+ const model=review(data);
+ assert.equal(model.editable.items.length,1);
+ const item=model.editable.items[0];
+ assert.equal(item.source_key,cashEstimateSourceKey(salary[0]));
+ assert.deepEqual([item.categoryId,item.recordedAmount,item.remainingAmount],[salaryCategory,100,0]);
+ assert.deepEqual(item.recordedTransactions?.map(tx=>tx.id),[paid.id]);
+ const actualOnly=model.worksheet.businesses[0].actualOnlyRows;
+ assert.equal(actualOnly[0].categoryId,loanCategory);assert.equal(actualOnly[0].editableTransactionId,loan.id);
+});
+
+test('same recipient expense categories stay separate while each same-category group still aggregates once',()=>{
+ const transactions=[...personHistory(),...personHistory(salaryCategory,10,'extra-salary'),...personHistory(adsCategory,40,'ads'),personRow('salary-paid','2027-04-10',55),personRow('ads-paid','2027-04-10',20,adsCategory)];
+ const {editable,rows}=review(categoryData(transactions));
+ assert.equal(editable.items.length,2);
+ assert.deepEqual(rows.map(item=>[item.categoryId,item.originalAmount,item.recordedAmount,item.remainingAmount]).sort(),[[salaryCategory,110,55,55],[adsCategory,40,20,20]].sort());
+ assert.equal(new Set(editable.items.flatMap(item=>item.recordedTransactions!.map(tx=>tx.id))).size,2);
+ for(const item of editable.items)assert.equal(cashEstimateSourceIdentity(item.source_key)?.categoryId,item.categoryId);
+});
+
+test('ambiguous unknown bank category cannot choose among two accounting categories or become editable ledger evidence',()=>{
+ const data=categoryData([...personHistory(),...personHistory(adsCategory,40,'ads')],{bank_plan_actuals:[actual({description:'Synthetic recipient',party:'Synthetic recipient',source_details:{counterparty:'Synthetic recipient'},amount:25})],bank_plan_coverage:[coverage()]});
+ const model=review(data);
+ assert.deepEqual(model.rows.map(item=>item.recordedAmount),[0,0]);
+ const actualOnly=model.worksheet.businesses[0].actualOnlyRows;
+ assert.equal(actualOnly.length,1);assert.equal(actualOnly[0].editableTransactionId,null);assert.equal(actualOnly[0].categoryId,null);assert.equal(actualOnly[0].categoryName,'');
+});
+
+test('saved ledger category overrides provider raw label and linked bank rows retain explicit ledger identity',()=>{
+ const paid=personRow('saved-expense','2027-04-10',60,salaryCategory,{raw_gwamok:'대여금',manually_classified:true});
+ const data=categoryData([...personHistory(),paid],{bank_plan_actuals:[actual({description:'Synthetic recipient',source_details:{counterparty:'Synthetic recipient'},transaction_id:paid.id,amount:60})],bank_plan_coverage:[coverage()]});
+ const excluded=edit({source_key:cashEstimateSourceKey(paid),excluded:true});
+ const model=review(data,[excluded]),actualOnly=model.worksheet.businesses[0].actualOnlyRows[0];
+ assert.equal(actualOnly.source,'bank-query');assert.equal(actualOnly.editableTransactionId,paid.id);assert.equal(actualOnly.categoryName,'급여');
+ assert.equal(review(data).rows[0].recordedAmount,60);
+});
+
+test('legacy ambiguous saved budget preserves one amount, date, confirmation and memo without cloning category budgets',()=>{
+ const data=categoryData([...personHistory(),...personHistory(adsCategory,40,'ads'),personRow('salary-paid','2027-04-10',50),personRow('ads-paid','2027-04-10',20,adsCategory)]);
+ const saved=edit({source_key:cashEstimateSourceKey(data.transactions[0]),plan_date:'2027-04-18',amount:160,confirmed_amount:15,confirmed_date:'2027-04-11',confirmation_complete:false,confirmation_memo:'Synthetic confirmation'});
+ const before=JSON.stringify({data,saved}),model=review(data,[saved]);
+ assert.equal(model.editable.items.length,1);
+ assert.deepEqual([model.editable.items[0].amount,model.editable.items[0].recordedAmount,model.editable.items[0].remainingAmount],[160,15,145]);
+ assert.equal(model.editable.items[0].date,saved.plan_date);assert.equal(model.editable.items[0].edit,saved);
+ assert.equal(JSON.stringify({data,saved}),before);
+ const hidden=review(data,[{...saved,id:'global',month:'*',plan_date:null,excluded:true}]);
+ assert.equal(hidden.editable.items.filter(item=>!item.excluded).length,0);assert.equal(hidden.editable.estimates.businesses[0].total,0);
+});
+
+test('overlapping saved legacy and category-qualified budgets keep one active budget and retain held edits for recovery',()=>{
+ const data=categoryData([...personHistory(),...personHistory(adsCategory,40,'ads'),personRow('salary-paid','2027-04-10',80)]);
+ const base=cashEstimateSourceKey(data.transactions[0]),qualified=JSON.stringify([...JSON.parse(base),salaryCategory]);
+ const legacy=edit({source_key:base,amount:300}),descendant=edit({id:'qualified',source_key:qualified,amount:100,confirmed_amount:10,confirmed_date:'2027-04-10',confirmation_complete:false});
+ const original=JSON.stringify({data,legacy,descendant}),model=review(data,[legacy,descendant]);
+ const held=model.editable.items.find(item=>item.source_key===qualified)!;
+ assert.ok(held.categoryConflictReason);assert.equal(held.excluded,true);assert.equal(held.edit?.excluded,false);assert.equal(held.edit,descendant);assert.equal(held.remainingAmount,0);
+ assert.equal(model.editable.estimates.businesses[0].total,300);assert.equal(model.rows.length,1);
+ const salary=review(data,[{...legacy,memo:mergeCashPlanCategory(legacy.memo,salaryCategory)},descendant]);
+ assert.deepEqual([salary.rows[0].recordedAmount,salary.rows[0].remainingAmount],[80,220]);
+ const disjoint=review(data,[{...legacy,memo:mergeCashPlanCategory(legacy.memo,adsCategory)},descendant]);
+ assert.equal(disjoint.editable.items.filter(item=>!item.excluded).length,2);
+ assert.equal(disjoint.editable.items.find(item=>item.source_key===qualified)?.categoryConflictReason,undefined);
+ assert.equal(JSON.stringify({data,legacy,descendant}),original);
+});
+
+test('explicit plan category override changes only matching and remaining budget while balances and original payment dates stay unchanged',()=>{
+ const data=categoryData([...personHistory(),...personHistory(adsCategory,40,'ads'),personRow('salary-paid','2027-04-08',50),personRow('ads-paid','2027-04-09',20,adsCategory)]);
+ const saved=edit({source_key:cashEstimateSourceKey(data.transactions[0]),amount:160,plan_date:'2027-04-18'}),before=JSON.stringify(data);
+ const salary=review(data,[{...saved,memo:mergeCashPlanCategory(saved.memo,salaryCategory)}]);
+ const ads=review(data,[{...saved,memo:mergeCashPlanCategory(saved.memo,adsCategory)}]);
+ assert.equal(salary.editable.items.length,1);assert.equal(ads.editable.items.length,1);
+ assert.deepEqual([salary.rows[0].recordedAmount,salary.rows[0].remainingAmount,ads.rows[0].recordedAmount,ads.rows[0].remainingAmount],[50,110,20,140]);
+ assert.equal(salary.editable.plan.businesses[0].balance,ads.editable.plan.businesses[0].balance);
+ assert.equal(salary.rows[0].date,'2027-04-18');assert.equal(ads.rows[0].date,'2027-04-18');
+ assert.equal(salary.rows[0].recordedPaymentDates[0].date,'2027-04-08');assert.equal(ads.rows[0].recordedPaymentDates[0].date,'2027-04-09');
+ assert.equal(JSON.stringify(data),before);
+});
+
+test('explicit saved transaction category edit recalculates salary remaining without changing bank amount, date or balance',()=>{
+ const paid=personRow('saved-payment','2027-04-09',50,salaryCategory,{raw_gwamok:'대여금'}),data=categoryData([...personHistory(),paid]);
+ const before=JSON.stringify(data),previous=review(data);
+ const corrected={...data,transactions:data.transactions.map(tx=>tx.id===paid.id?{...tx,category_id:loanCategory,is_internal:true,manually_classified:true}:tx)},next=review(corrected);
+ assert.deepEqual([previous.rows[0].recordedAmount,previous.rows[0].remainingAmount,next.rows[0].recordedAmount,next.rows[0].remainingAmount],[50,50,0,100]);
+ assert.equal(previous.editable.plan.businesses[0].balance,next.editable.plan.businesses[0].balance);
+ const original=corrected.transactions.find(tx=>tx.id===paid.id)!;
+ assert.deepEqual([original.amount,original.txn_date,original.balance],[paid.amount,paid.txn_date,paid.balance]);
+ assert.equal(next.worksheet.businesses[0].actualOnlyRows[0].categoryId,loanCategory);assert.equal(JSON.stringify(data),before);
+});
+
+test('unknown bank loan labels are blocked but loan interest expense and saved classification keep their distinct meaning',()=>{
+ const raw=(description:string)=>actual({description,party:'Synthetic recipient',source_details:{counterparty:'Synthetic recipient'},amount:25});
+ const salary=categoryData(personHistory(),{bank_plan_actuals:[raw('대여금 · Synthetic recipient')],bank_plan_coverage:[coverage()]});
+ assert.equal(review(salary).rows[0].recordedAmount,0);
+ const interest=categoryData(personHistory(),{bank_plan_actuals:[raw('대출이자 · Synthetic recipient')],bank_plan_coverage:[coverage()]});
+ assert.equal(review(interest).rows[0].recordedAmount,25);
+});
+
+test('exact bank-only provider expense category guards estimated and manual salary matching without classifying the source',()=>{
+ const fee='30000000-0000-4000-8000-000000000004',base=categoryData(personHistory());
+ const raw=actual({description:'Synthetic recipient',party:'Synthetic recipient',source_details:{counterparty:'Synthetic recipient',note:'Clobe 원본 분류(표시용): 지급수수료'},amount:100});
+ const data={...base,categories:[...base.categories,{id:fee,name:'지급수수료',group_name:'영업지출',is_internal:false,is_operating:true}],bank_plan_actuals:[raw],bank_plan_coverage:[coverage()]},before=JSON.stringify(data);
+ const estimated=review(data);
+ assert.deepEqual([estimated.rows[0].recordedAmount,estimated.rows[0].remainingAmount],[0,100]);
+ const actualOnly=estimated.worksheet.businesses[0].actualOnlyRows[0];
+ assert.equal(actualOnly.categoryId,null);assert.equal(actualOnly.categoryName,'');assert.equal(actualOnly.editableTransactionId,null);
+ const manual=edit({id:'manual-plan',source_type:'manual',source_key:'40000000-0000-4000-8000-000000000004',title:'Synthetic recipient',memo:mergeCashPlanCategory('',salaryCategory)});
+ const manualData={...data,transactions:[]},manualSalary=review(manualData,[manual]);
+ assert.deepEqual([manualSalary.rows[0].recordedAmount,manualSalary.rows[0].remainingAmount],[0,100]);
+ const manualFee=review(manualData,[{...manual,memo:mergeCashPlanCategory('',fee)}]);
+ assert.equal(manualFee.rows[0].recordedAmount,100);assert.equal(manualFee.editable.items[0].recordedTransactions?.[0].category_id,null);
+ assert.equal(JSON.stringify(data),before);
+});
+
+test('a unique exact provider category distinguishes bank-only expense groups without changing actual category or raw note',()=>{
+ const raw=actual({description:'Synthetic recipient',party:'Synthetic recipient',source_details:{counterparty:'Synthetic recipient',note:'Clobe 원본 분류(표시용): 광고 선전비'},amount:40});
+ const data=categoryData([...personHistory(),...personHistory(adsCategory,40,'ads')],{bank_plan_actuals:[raw],bank_plan_coverage:[coverage()]}),before=JSON.stringify(data);
+ const model=review(data),salary=model.rows.find(item=>item.categoryId===salaryCategory)!,ads=model.rows.find(item=>item.categoryId===adsCategory)!;
+ assert.deepEqual([salary.recordedAmount,salary.remainingAmount,ads.recordedAmount,ads.remainingAmount],[0,100,40,0]);
+ assert.equal(ads.editorItem.recordedTransactions?.[0].category_id,null);assert.equal(ads.editorItem.recordedTransactions?.[0].raw_gwamok,'');
+ assert.equal(JSON.stringify(data),before);
+});
+
+test('provisional expense compatibility cannot override explicit bank-only loan evidence for estimated or manual plans',()=>{
+ const fee='30000000-0000-4000-8000-000000000004',base=categoryData(personHistory(fee)),categories=[...base.categories,{id:fee,name:'지급수수료',group_name:'영업지출',is_internal:false,is_operating:true}];
+ const manual=edit({id:'manual-loan-guard',source_type:'manual',source_key:'40000000-0000-4000-8000-000000000004',title:'Synthetic recipient',memo:mergeCashPlanCategory('',fee)});
+ for(const note of ['', 'Clobe 원본 분류(표시용): 지급수수료']){
+  const raw=actual({description:'대여금 · Synthetic recipient',party:'Synthetic recipient',source_details:{counterparty:'Synthetic recipient',note},amount:100});
+  const data={...base,categories,bank_plan_actuals:[raw],bank_plan_coverage:[coverage()]},before=JSON.stringify(data);
+  assert.deepEqual(review(data).rows.map(item=>[item.recordedAmount,item.remainingAmount]),[[0,100]]);
+  assert.deepEqual(review({...data,transactions:[]},[manual]).rows.map(item=>[item.recordedAmount,item.remainingAmount]),[[0,100]]);
+  assert.equal(JSON.stringify(data),before);
+ }
+});
+
+test('unknown ambiguous and non-provider display labels cannot invent a category or select among competing expense groups',()=>{
+ const raw=(note:string)=>actual({description:'Synthetic recipient',party:'Synthetic recipient',source_details:{counterparty:'Synthetic recipient',note},amount:40});
+ const source=categoryData([...personHistory(),...personHistory(adsCategory,40,'ads')]);
+ const cases=[{...source,bank_plan_actuals:[raw('Clobe 원본 분류(표시용): Unknown synthetic category')]},
+  {...source,categories:[...source.categories,{id:'30000000-0000-4000-8000-000000000005',name:'광고 선전비',group_name:'영업지출',is_internal:false,is_operating:true}],bank_plan_actuals:[raw('Clobe 원본 분류(표시용): 광고선전비')]},
+  {...source,bank_plan_actuals:[raw('User note · Clobe 원본 분류(표시용): 광고선전비')]},
+  {...source,bank_plan_actuals:[raw('Clobe 원본 분류(표시용): 광고선전비\nOther note')]}];
+ for(const input of cases){
+  const data={...input,bank_plan_coverage:[coverage()]},before=JSON.stringify(data),model=review(data);
+  assert.deepEqual(model.rows.map(item=>item.recordedAmount),[0,0]);
+  assert.equal(model.worksheet.businesses[0].actualOnlyRows[0].categoryId,null);assert.equal(model.worksheet.businesses[0].actualOnlyRows[0].categoryName,'');
+  assert.equal(JSON.stringify(data),before);
+ }
+});
+
+test('saved ledger salary category takes precedence over conflicting provider expense display note',()=>{
+ const fee='30000000-0000-4000-8000-000000000004',paid=personRow('saved-salary-note','2027-04-10',100,salaryCategory,{manually_classified:true,source_details:{counterparty:'Synthetic recipient',note:'Clobe 원본 분류(표시용): 지급수수료'}}),base=categoryData([...personHistory(),paid]);
+ const data={...base,categories:[...base.categories,{id:fee,name:'지급수수료',group_name:'영업지출',is_internal:false,is_operating:true}],bank_plan_actuals:[actual({description:'Synthetic recipient',source_details:{counterparty:'Synthetic recipient',note:'Clobe 원본 분류(표시용): 지급수수료'},transaction_id:paid.id,amount:100})],bank_plan_coverage:[coverage()]},before=JSON.stringify(data);
+ const model=review(data);
+ assert.deepEqual([model.rows[0].recordedAmount,model.rows[0].remainingAmount],[100,0]);
+ assert.equal(model.editable.items[0].recordedTransactions?.[0].category_id,salaryCategory);assert.equal(JSON.stringify(data),before);
+});
+
+test('category metadata is hidden, retained through memo editing, and invalid or unknown metadata never supplies category evidence',()=>{
+ const data=categoryData(personHistory()),stored=mergeCashPlanCategory('Synthetic note',salaryCategory);
+ assert.equal(cashPlanMemoDisplay(stored),'Synthetic note');assert.equal(cashPlanUserMemo(stored),'Synthetic note');
+ assert.equal(readCashPlanCategory(mergeCashPlanUserMemo(stored,'Changed note'),data.categories)?.categoryId,salaryCategory);
+ assert.equal(cashPlanMemoDisplay(mergeCashPlanUserMemo(stored,'')),'');
+ for(const invalid of [`${stored}\n${stored}`,`[cash-plan-category:v2:${salaryCategory}]`,`[cash-plan-category:v1:broken]`,`[cash-plan-category]`]){
+  assert.ok(cashPlanCategoryMemoError(invalid));assert.equal(readCashPlanCategory(invalid,data.categories),null);assert.doesNotMatch(cashPlanMemoDisplay(invalid),/cash-plan-category/);
+ }
+ assert.equal(readCashPlanCategory(mergeCashPlanCategory('', '30000000-0000-4000-8000-000000000099'),data.categories),null);
+});
 
 test('잔액과 출금 증거 동기화는 추정 원본과 거래 분류를 보존하며 남은 계획만 갱신한다',()=>{
  const original=dataset(),data=dataset({bank_plan_actuals:[actual({amount:70,balance:930})],bank_plan_coverage:[coverage()],balance_snapshots:[{account_id:'a1',business_id:'b1',balance:930,balance_date:asOf,collected_at:collected,synced_at:'2027-04-12T00:01:00Z',source:'clobe',currency:'KRW'}]});

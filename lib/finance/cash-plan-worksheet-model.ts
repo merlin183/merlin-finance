@@ -13,7 +13,7 @@ export type CashPlanWorksheetStatus='pending'|'partial'|'spent'|'over-budget'|'c
 export type CashPlanRecordedPaymentDate={date:string;amount:number;transactionCount:number};
 export type CashPlanWorksheetActualOnlyRow={
  key:string;transactionId:string;businessId:string;accountId:string;date:string;title:string;amount:number;
- description:string;categoryName:string;isInternal:boolean;source:'bank-query'|'ledger';
+ description:string;categoryId:string|null;categoryName:string;editableTransactionId:string|null;isInternal:boolean;source:'bank-query'|'ledger';
 };
 export type CashPlanWorksheetRow={
  key:string;businessId:string;title:string;date:string|null;month:string;from:string;to:string;
@@ -21,6 +21,7 @@ export type CashPlanWorksheetRow={
  displayDate:string|null;displayDateIsActual:boolean;
  originalAmount:number;recordedAmount:number|null;remainingAmount:number;
  accountId:string|null;sourceAccountId:string|null;sourceType:CashPlanEditorItem['source_type'];
+ categoryId:string|null;categoryName:string|null;
  note:string;memo:string;tax:boolean;status:CashPlanWorksheetStatus;statusLabel:string;
  confirmation:CashPlanPaymentConfirmation|null;editorItem:CashPlanEditorItem;
  bankRecordedAmount:number;bankEvidence:BankPlanEvidence;bankCoverage:BankPlanCoverageStatus;reconciliationReason:string|null;
@@ -116,19 +117,20 @@ export function buildCashPlanWorksheetModel({data,editable,basis,range,asOf,opti
    cashPlanMemoDisplay(item.memo),
   ].filter(Boolean).join(' · ');
   target.push({key:item.key,businessId:item.businessId,title:item.title,date:item.date,displayDate,displayDateIsActual,month:item.month,from,to,originalAmount,recordedAmount,
-   remainingAmount:item.remainingAmount,accountId:item.accountId,sourceAccountId:item.sourceAccountId,sourceType:item.source_type,
+   remainingAmount:item.remainingAmount,accountId:item.accountId,sourceAccountId:item.sourceAccountId,sourceType:item.source_type,categoryId:item.categoryId,categoryName:item.categoryName,
    note,memo:cashPlanUserMemo(item.memo),tax:item.paymentKind==='tax',...status,
    confirmation,editorItem:item,bankRecordedAmount,bankEvidence,bankCoverage:item.bankCoverage??'uncollected',reconciliationReason,recordedPaymentDates,
   });
  }
  const categories=new Map(data.categories.map(category=>[category.id,category])),internalIds=new Set(data.links.map(link=>link.out_transaction_id));
+ const savedTransactions=new Map(data.transactions.map(row=>[row.id,row]));
  const actualOnlyByBusiness=new Map(editable.plan.businesses.map(plan=>[plan.business.id,[] as CashPlanWorksheetActualOnlyRow[]]));
  for(const actual of canonicalActuals.transactions){
   const target=actualOnlyByBusiness.get(actual.business_id);
   if(!target||representedIds.has(actual.id)||actual.txn_date<range.from||actual.txn_date>range.to)continue;
   const category=categories.get(actual.category_id??'');
   target.push({key:JSON.stringify(['actual-only',actual.id]),transactionId:actual.id,businessId:actual.business_id,accountId:actual.account_id,date:actual.txn_date,
-   title:sourceCounterparty(actual)||actual.description||'출금',amount:actual.amount,description:actual.description,categoryName:category?.name||actual.raw_gwamok,
+   title:sourceCounterparty(actual)||actual.description||'출금',amount:actual.amount,description:actual.description,categoryId:category?.id??null,categoryName:category?.name??'',editableTransactionId:savedTransactions.has(actual.id)?actual.id:null,
    isInternal:actual.is_internal||!!category?.is_internal||internalIds.has(actual.id),source:canonicalActuals.bankById.has(actual.id)?'bank-query':'ledger'});
  }
  const businesses=editable.plan.businesses.map(plan=>{

@@ -1,3 +1,4 @@
+// Display preferences never alter stored financial values or calculation inputs.
 export const FINANCIAL_MASK='••••••';
 export const FINANCIAL_VISIBILITY_KEY='merlin.financial-visibility.v1';
 

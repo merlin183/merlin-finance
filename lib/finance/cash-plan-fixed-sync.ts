@@ -7,6 +7,7 @@ import {fixedCostMemo,readFixedCostMemo} from './cash-plan-series-memo';
 import {cashPlanEstimateOptions} from './cash-plan-policy';
 import {calendarMonthRange} from './transaction-calendar';
 import type {Dataset} from './types';
+import {cashEstimateSourceIdentity} from './cash-plan-category';
 
 export type CashPlanFixedSyncInput={data:Dataset;edits:readonly CashPlanEdit[];month:string;asOf:string;businessId?:string;basis?:'estimated'|'registered';createId?:()=>string};
 export type CashPlanFixedSyncResult={changes:CashPlanChange[];includedCount:number;skippedCount:number};
@@ -21,10 +22,8 @@ function assertSource(data:Dataset,item:CashPlanEditorItem){
   if(!uuid(item.source_key))throw Error('직접 추가한 지출계획의 원본을 확인해주세요.');
   return;
  }
- let source:unknown;
- try{source=JSON.parse(item.source_key);}catch{throw Error('반복 출금의 원본을 확인해주세요.');}
- if(!Array.isArray(source)||source.length!==3||source[0]!==item.businessId||typeof source[1]!=='string'||typeof source[2]!=='string'||!source[2].trim()
-  ||!data.accounts.some(account=>account.id===source[1]&&account.business_id===item.businessId))throw Error('반복 출금의 사업자와 원본 계좌를 확인해주세요.');
+ const source=cashEstimateSourceIdentity(item.source_key,item.businessId);
+ if(!source||!source.partyKey.trim()||!data.accounts.some(account=>account.id===source.accountId&&account.business_id===item.businessId))throw Error('반복 출금의 사업자와 원본 계좌를 확인해주세요.');
 }
 
 function sourceGroup(item:CashPlanEditorItem,categories:readonly string[]):string{

@@ -5,6 +5,7 @@ import {buildEditableCashPlan} from '../lib/finance/editable-cash-plan';
 import {buildCashPlanWorksheetModel} from '../lib/finance/cash-plan-worksheet-model';
 import {buildAccountFunding} from '../lib/finance/account-funding';
 import {cashEstimateSourceKey} from '../lib/finance/cash-estimates';
+import {cashPlanPaymentConfirmationChange} from '../lib/finance/cash-plan-payment-confirmation';
 import type {CashPlanEdit} from '../lib/finance/cash-plan-edits';
 import type {BankPlanActual,BankPlanCoverage} from '../lib/finance/clobe-plan-actuals';
 import {emptyDataset,type Dataset,type Transaction} from '../lib/finance/types';
@@ -48,6 +49,25 @@ function assertTotals(calendar:CashCalendarModel){
  assert.equal(calendar.confirmedExpenses,calendar.days.reduce((total,item)=>total+item.confirmedExpenses,0));
  assert.equal(calendar.undatedPlannedExpenses,calendar.undatedItems.filter(item=>item.kind==='planned').reduce((total,item)=>total+item.amount,0));
 }
+
+test('명시 반환은 남은 예산만 갱신하고 달력 원본 출금·현재 잔액·수동 총출금 중복 제외를 유지한다',()=>{
+ const source=edit({confirmed_amount:100,confirmed_date:'2027-04-06',confirmation_complete:false,confirmation_memo:'Checked receipt'});
+ const data=observed(80),initial=prepare(data,[source]);
+ const change=cashPlanPaymentConfirmationChange(initial.editable.items[0],{amount:100,date:'2027-04-06',complete:false,memo:'Checked receipt',returnedAmount:30,returnedDate:'2027-04-08'});
+ const saved={...source,confirmation_memo:change.confirmation_memo},before=JSON.stringify({data,saved});
+ const returned=prepare(data,[saved]);
+ assert.deepEqual([returned.calendar.actualExpenses,returned.calendar.confirmedExpenses,returned.calendar.plannedExpenses],[80,20,30]);
+ assert.equal(returned.editable.items[0].recordedAmount,100);assert.equal(returned.editable.items[0].confirmedAmount,100);
+ assert.equal(returned.editable.plan.businesses[0].balance,initial.editable.plan.businesses[0].balance);
+ const manual=entries(returned.calendar).find(item=>item.kind==='confirmed')!;
+ assert.match(manual.note,/Checked receipt/);assert.match(manual.note,/반환 입금 직접 확인/);assert.doesNotMatch(manual.note,/cash-plan-return/);
+ assert.equal(JSON.stringify({data,saved}),before);
+ const synced=prepare(observed(100),[saved]);
+ assert.deepEqual([synced.calendar.actualExpenses,synced.calendar.confirmedExpenses,synced.calendar.plannedExpenses],[100,0,30]);
+ const additional=prepare(observed(120),[saved]);
+ assert.deepEqual([additional.calendar.actualExpenses,additional.calendar.confirmedExpenses,additional.calendar.plannedExpenses],[120,0,10]);
+ assert.equal(actualEntries(additional.calendar).length,1);assertTotals(returned.calendar);assertTotals(synced.calendar);assertTotals(additional.calendar);
+});
 
 test('동기화 재조회 0 → 일부 → 전체 출금은 실제와 남은 예정으로 바뀌며 이전 모델을 변경하지 않는다',()=>{
  const snapshots:CashCalendarModel[]=[];

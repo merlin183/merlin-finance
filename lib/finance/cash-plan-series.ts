@@ -5,6 +5,7 @@ import {calendarMonthRange} from './transaction-calendar';
 import {readFixedCostMemo} from './cash-plan-series-memo';
 import {resolveCashPlanSeriesForMonth} from './cash-plan-series-revision';
 import {parseFinanceDate} from './date-range';
+import {cashEstimateSourceIdentity,readCashPlanCategory} from './cash-plan-category';
 
 const monthPattern=/^(?:19|[2-9]\d)\d{2}-(?:0[1-9]|1[0-2])$/;
 const money=z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
@@ -26,7 +27,7 @@ export type CashPlanSeriesBreakdownRow={
  sourceType:CashPlanSeries['source_type'];sourceKey:string;month:string;editId:string|null;version:number;
  seriesVersion:number;revisionEffectiveMonth:string|null;revisionExcludedFrom:string|null;
  nominalDay:number|null;
- baseAmount:number;currentAmount:number;included:boolean;exclusionReason:'이번 달 제외'|'전체 기간 제외'|'이 달부터 계속 제외'|null;
+ baseAmount:number;currentAmount:number;included:boolean;exclusionReason:'이번 달 제외'|'전체 기간 제외'|'이 달부터 계속 제외'|'원본 예산 중복 보류'|null;
  date:string|null;accountId:string|null;accountName:string;memo:string;editMemo:string|null;effectiveMemo:string;globalMemo:string|null;
 };
 export type CashPlanSeriesBreakdownGroup={key:string;label:string;amount:number;count:number};
@@ -84,12 +85,8 @@ function isStandaloneFixedCostEdit(edit:CashPlanEdit,data:Dataset):boolean{
   ||!z.string().uuid().safeParse(edit.id).success||!Number.isSafeInteger(edit.amount)||edit.amount<0
   ||(edit.plan_date!==null&&(!parseFinanceDate(edit.plan_date)||!edit.plan_date.startsWith(`${edit.month}-`))))return false;
  if(edit.account_id&&!data.accounts.some(account=>account.id===edit.account_id&&account.business_id===edit.business_id))return false;
- try{
-  const source:unknown=JSON.parse(edit.source_key);
-  return Array.isArray(source)&&source.length===3&&source[0]===edit.business_id&&typeof source[1]==='string'
-   &&z.string().uuid().safeParse(source[1]).success&&data.accounts.some(account=>account.id===source[1]&&account.business_id===edit.business_id)
-   &&typeof source[2]==='string'&&source[2].trim().length>0;
- }catch{return false;}
+ const source=cashEstimateSourceIdentity(edit.source_key,edit.business_id);
+ return !!source&&z.string().uuid().safeParse(source.accountId).success&&data.accounts.some(account=>account.id===source.accountId&&account.business_id===edit.business_id)&&source.partyKey.trim().length>0;
 }
 
 function standaloneFixedCosts(data:Dataset,overrides:ReturnType<typeof latestEdits>):CashPlanEdit[]{
@@ -117,10 +114,12 @@ function groupLabel(series:CashPlanSeries):string{
 
 function resolveMonthRows(data:Dataset,series:readonly CashPlanSeries[],overrides:ReturnType<typeof latestEdits>,businessId:string,month:string):CashPlanSeriesBreakdownRow[]{
  const accounts=new Map(data.accounts.filter(account=>account.business_id===businessId).map(account=>[account.id,account]));
+ const globalFor=(sourceType:string,sourceKey:string)=>overrides.get(JSON.stringify([businessId,sourceType,sourceKey,'*']))
+  ??(sourceType==='estimated'?overrides.get(JSON.stringify([businessId,sourceType,cashEstimateSourceIdentity(sourceKey)?.legacyKey??sourceKey,'*'])):undefined);
  const rows:CashPlanSeriesBreakdownRow[]=series.filter(item=>item.business_id===businessId&&cashPlanSeriesActive(item,month)).map(item=>{
   const profile=resolveCashPlanSeriesForMonth(item,month,data.cash_plan_series_revisions)!;
   const identity=[item.business_id,item.source_type,item.source_key],edit=overrides.get(JSON.stringify([...identity,month]));
-  const global=overrides.get(JSON.stringify([...identity,'*']));
+  const global=globalFor(item.source_type,item.source_key);
   const account=accounts.get((edit?edit.account_id:profile.accountId)??'');
   const exclusionReason=global?.excluded?'전체 기간 제외':profile.revisionExcludedFrom?'이 달부터 계속 제외':edit?.excluded?'이번 달 제외':null;
   return {id:item.id,key:JSON.stringify([item.id,month]),kind:item.kind,groupLabel:groupLabel(item),
@@ -137,7 +136,7 @@ function resolveMonthRows(data:Dataset,series:readonly CashPlanSeries[],override
  for(const edit of standaloneFixedCosts(data,overrides)){
   if(edit.business_id!==businessId||edit.month!==month)continue;
   const account=accounts.get(edit.account_id??''),group=readFixedCostMemo(edit.memo)!;
-  const global=overrides.get(JSON.stringify([edit.business_id,edit.source_type,edit.source_key,'*']));
+  const global=globalFor(edit.source_type,edit.source_key);
   const exclusionReason=global?.excluded?'전체 기간 제외':edit.excluded?'이번 달 제외':null;
   const id=edit.source_type==='estimated'?edit.id:edit.source_key;
   rows.push({id,key:JSON.stringify([id,month]),kind:'operating',groupLabel:group.groupLabel,
@@ -148,6 +147,25 @@ function resolveMonthRows(data:Dataset,series:readonly CashPlanSeries[],override
    exclusionReason,date:edit.plan_date,accountId:account?.id??null,
    accountName:account?[...new Set([account.bank,account.name,account.masked_number].filter(Boolean))].join(' · '):'미지정',
    memo:edit.memo,editMemo:edit.memo,effectiveMemo:edit.memo,globalMemo:global?.memo??null});
+ }
+ const categoryFor=(row:CashPlanSeriesBreakdownRow)=>{
+  const explicit=readCashPlanCategory(row.effectiveMemo,data.categories)?.categoryId;
+  if(explicit)return explicit;
+  const identity=cashEstimateSourceIdentity(row.sourceKey),marked=readFixedCostMemo(row.effectiveMemo);
+  if(identity?.categoryId&&data.categories.some(category=>category.id===identity.categoryId))return identity.categoryId;
+  const categories=marked?data.categories.filter(category=>category.name===marked.groupLabel):[];
+  return categories.length===1?categories[0].id:null;
+ };
+ for(const row of rows){
+  const identity=row.sourceType==='estimated'?cashEstimateSourceIdentity(row.sourceKey):null;
+  if(!row.included||!identity?.categoryId)continue;
+  const overlap=rows.some(legacy=>{
+   const original=legacy.sourceType==='estimated'?cashEstimateSourceIdentity(legacy.sourceKey):null;
+   if(!original||original.categoryId||original.legacyKey!==identity.legacyKey)return false;
+   const category=categoryFor(legacy),own=categoryFor(row);
+   return !category||!own||category===own;
+  });
+  if(overlap){row.included=false;row.exclusionReason='원본 예산 중복 보류';}
  }
  return rows;
 }

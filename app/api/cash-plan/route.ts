@@ -1,5 +1,6 @@
 import {authenticated,assertSameOrigin,apiError} from '@/lib/supabase/server';
 import {cashPlanChangesSchema} from '@/lib/finance/cash-plan-edits';
+import {cashPlanCategoryId} from '@/lib/finance/cash-plan-category';
 
 const headers={'Cache-Control':'no-store'};
 
@@ -18,6 +19,12 @@ export async function POST(request:Request){
   const {db}=await authenticated();
   const parsed=cashPlanChangesSchema.safeParse(await request.json());
   if(!parsed.success)return Response.json({error:parsed.error.issues[0]?.message||'수정할 지출 계획을 확인해주세요.'},{status:400,headers});
+  const categoryIds=[...new Set(parsed.data.changes.flatMap(change=>change.action==='save'||change.action==='payment_confirmation'?cashPlanCategoryId(change.memo)??[]:[]))];
+  if(categoryIds.length){
+   const {data:categories,error:categoryError}=await db.from('fd_categories').select('id').in('id',categoryIds);
+   if(categoryError)throw Error('계정과목을 읽지 못했습니다. 다시 저장해주세요.');
+   if(categoryIds.some(id=>!categories?.some(category=>category.id===id)))return Response.json({error:'저장할 지출계획의 계정과목을 확인해주세요.'},{status:400,headers});
+  }
   const {data,error}=await db.rpc('fd_save_cash_plan_edits',{p_changes:parsed.data.changes});
   if(error){
    if(error.message.includes('CASH_PLAN_STALE'))return Response.json({error:'다른 관리자가 이 지출 계획을 수정했습니다. 입력 내용은 유지됩니다. 최신 계획을 확인한 뒤 다시 저장해주세요.'},{status:409,headers});

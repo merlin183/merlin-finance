@@ -9,6 +9,7 @@ import type {CashPlanEdit} from '../lib/finance/cash-plan-edits';
 import {buildAccountFunding} from '../lib/finance/account-funding';
 import {buildMonthlyReport} from '../lib/finance/monthly-report';
 import {fixedCostMemo} from '../lib/finance/cash-plan-series-memo';
+import {mergeCashPlanCategory} from '../lib/finance/cash-plan-category';
 
 const bid='10000000-0000-4000-8000-000000000001',aid='20000000-0000-4000-8000-000000000001';
 const sid='30000000-0000-4000-8000-000000000001',iid='30000000-0000-4000-8000-000000000002';
@@ -22,6 +23,21 @@ const data=(extra:Partial<Dataset>={}):Dataset=>({...structuredClone(emptyDatase
  categories:[{id:'fee',name:'지급수수료',group_name:'영업비용',is_internal:false,is_operating:true}],
  transactions:['07','08','09'].map(month=>transaction(month)),cash_plan_series:[series(),installment()],...extra});
 const edit=(extra:Partial<CashPlanEdit>={}):CashPlanEdit=>({id:'40000000-0000-4000-8000-000000000001',business_id:bid,source_type:'manual',source_key:iid,month:'2026-11',title:'Synthetic monthly override',account_id:null,plan_date:'2026-11-18',amount:40,memo:'',excluded:false,version:1,updated_at:'2026-10-28T00:00:00Z',...extra});
+
+test('fixed-cost summary holds overlapping legacy descendants and preserves disjoint categories and ancestor exclusions',()=>{
+ const salary='60000000-0000-4000-8000-000000000001',ads='60000000-0000-4000-8000-000000000002';
+ const source=data({cash_plan_series:[],categories:[{id:salary,name:'급여',group_name:'영업비용',is_internal:false,is_operating:true},{id:ads,name:'광고선전비',group_name:'영업비용',is_internal:false,is_operating:true}]});
+ const legacy=edit({source_type:'estimated',source_key:key,account_id:aid,amount:300,memo:mergeCashPlanCategory(fixedCostMemo('기타 고정비','Legacy note'),salary)});
+ const qualified=edit({id:'40000000-0000-4000-8000-000000000002',source_type:'estimated',source_key:JSON.stringify([...JSON.parse(key),salary]),account_id:aid,amount:100,memo:fixedCostMemo('급여','Qualified note')});
+ const detail=buildCashPlanSeriesBreakdown(source,[legacy,qualified],bid,'2026-11');
+ assert.equal(detail.total,300);assert.equal(detail.excludedRows[0].exclusionReason,'원본 예산 중복 보류');assert.equal(qualified.excluded,false);
+ const distinct={...legacy,memo:mergeCashPlanCategory(legacy.memo,ads)};
+ assert.equal(buildCashPlanSeriesBreakdown(source,[distinct,qualified],bid,'2026-11').total,400);
+ assert.equal(buildCashPlanSeriesMonthly(source,[legacy,qualified],'2026-11',1)[0].total,300);
+ const global={...legacy,id:'40000000-0000-4000-8000-000000000003',month:'*',plan_date:null,excluded:true};
+ const excluded=buildCashPlanSeriesBreakdown(source,[qualified,global],bid,'2026-11');
+ assert.equal(excluded.total,0);assert.equal(excluded.excludedRows[0].exclusionReason,'전체 기간 제외');
+});
 
 test('whole-month operating and finite installment budgets have one final-month adjustment and no later charge',()=>{
  const source=data(),before=JSON.stringify(source),rows=buildCashPlanSeriesMonthly(source,[],'2026-10',6);

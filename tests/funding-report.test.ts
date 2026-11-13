@@ -12,7 +12,7 @@ const dataset=(extra:Partial<Dataset>={}):Dataset=>({...emptyDataset,businesses:
 const dated=(date:string,amount:number,accountId='a1',businessId='b1',title='합성 정기 출금',groupKey=title):CashDatedEstimate=>({groupKey,businessId,accountId,title,date,amount});
 const budget=(amount:number,accountId='a1',businessId='b1'):CashUndatedBudget=>({groupKey:'budget',businessId,accountId,title:'합성 비정기 출금',month:'2026-10',from:range.from,to:range.to,coveredDays:30,monthDays:31,monthlyAmount:amount,amount,kind:'period-budget'});
 const estimate=(dated:CashDatedEstimate[]=[],undated:CashUndatedBudget[]=[],id='b1',groups:CashEstimateGroup[]=[]):CashEstimateBusiness=>({business:business(id),total:[...dated,...undated].reduce((sum,item)=>sum+item.amount,0),dated,undated,groups,exclusions:[]});
-const group=(key:string,categoryNames:string[],accountId='a1',businessId='b1'):CashEstimateGroup=>({key,businessId,accountId,label:'원본 거래처',categoryNames,monthlyAverage:0,monthlyAmounts:[],sourceCount:0,sourceIds:[],expectedDay:10,monthEnd:false});
+const group=(key:string,categoryNames:string[],accountId='a1',businessId='b1'):CashEstimateGroup=>({key,businessId,accountId,label:'원본 거래처',categoryId:null,categoryNames,monthlyAverage:0,monthlyAmounts:[],sourceCount:0,sourceIds:[],expectedDay:10,monthEnd:false});
 const report=(data:Dataset,estimates:CashEstimateBusiness[]=[],basis:'registered'|'estimated'='estimated')=>{
  const plan=buildCashPlan(data,'2026-09-30');
  return buildFundingReport(plan.businesses,new Map(estimates.map(item=>[item.business.id,item])),basis,plan.range);

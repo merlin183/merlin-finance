@@ -24,13 +24,19 @@ export function tossSyncRange(now=Date.now()){
  const today=new Date(now+9*3600000).toISOString().slice(0,10),[year,month]=today.split('-').map(Number);
  return {from:new Date(Date.UTC(year,month-2,1)).toISOString().slice(0,10),to:new Date(Date.parse(today+'T00:00:00Z')+90*86400000).toISOString().slice(0,10)};
 }
-async function boundedJson(response:Response):Promise<unknown>{
- if(Number(response.headers.get('content-length'))>12*1024*1024)throw new TossError('incomplete');
+async function boundedJson(response:Response,maxBytes=12*1024*1024):Promise<unknown>{
+ if(Number(response.headers.get('content-length'))>maxBytes)throw new TossError('incomplete');
  if(!response.body)throw new TossError('incomplete');
  const reader=response.body.getReader(),chunks:Uint8Array[]=[];let length=0;
- try{while(true){const part=await reader.read();if(part.done)break;length+=part.value.byteLength;if(length>12*1024*1024){await reader.cancel();throw new TossError('incomplete');}chunks.push(part.value);}
+ try{while(true){const part=await reader.read();if(part.done)break;length+=part.value.byteLength;if(length>maxBytes){await reader.cancel();throw new TossError('incomplete');}chunks.push(part.value);}
   try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new TossError('incomplete');}
  }finally{reader.releaseLock();}
+}
+async function accessPolicyDenied(response:Response):Promise<boolean>{
+ // Only a known code from a small provider error body changes the diagnosis.
+ // Never return the provider's message, which may contain sensitive details.
+ try{const payload=await boundedJson(response,4096);return isObject(payload)&&payload.code==='API_KEY_ACCESS_DENIED';}
+ catch{return false;}
 }
 export async function readTossSettlements(merchants:readonly TossServerMerchant[],range:{from:string;to:string},signal:AbortSignal,now=Date.now,fetcher:typeof fetch=fetch):Promise<TossSettlement[]>{
  const all:TossSettlement[]=[],syncedAt=new Date(now()).toISOString(),keys=new Map<string,string>();
@@ -43,6 +49,7 @@ export async function readTossSettlements(merchants:readonly TossServerMerchant[
    let response:Response;
    try{response=await fetcher(url,{method:'GET',headers:{Authorization:`Basic ${Buffer.from(merchant.secretKey+':').toString('base64')}`},cache:'no-store',redirect:'error',signal:AbortSignal.any([signal,AbortSignal.timeout(65000)])});}
    catch{throw new TossError('provider');}
+   if(response.status===403&&await accessPolicyDenied(response))throw new TossError('provider_access');
    if(response.status===401||response.status===403)throw new TossError('provider_auth');
    if(!response.ok)throw new TossError('provider');
    const payload=await boundedJson(response);

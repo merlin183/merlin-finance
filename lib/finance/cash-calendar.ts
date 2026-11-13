@@ -3,6 +3,7 @@ import {unionBankPlanTransactions} from './clobe-plan-actuals';
 import {formatFinanceDate,isValidDateRange,parseFinanceDate,type DateRange} from './date-range';
 import type {CashPlanEditorItem} from './editable-cash-plan';
 import type {PaymentKind,PaymentStatus} from './cash-plan-edits';
+import {cashPlanPaymentConfirmation} from './cash-plan-payment-confirmation';
 import {getSourceDetailEntries,sourceCounterparty} from './source-details';
 import type {Business,Dataset,Transaction} from './types';
 
@@ -141,7 +142,8 @@ export function buildCashCalendarModel({data,items,funding,range,asOf,basis,busi
   const actual=[...ids].reduce((total,id)=>total+(observed.get(id)?.amount??0),0);
   const amount=Math.max(0,confirmed-actual);
   if(!amount)continue;
-  const note=[`사용자 누적 출금 확인 ${confirmed.toLocaleString('ko-KR')}원`,actual?`통장 실거래 ${actual.toLocaleString('ko-KR')}원과 겹치는 금액 제외`:'통장 거래 자동 확인 없음',item.confirmationComplete?'출금 완료 확인':'일부 출금 확인',item.edit?.confirmation_memo].filter(Boolean).join(' · ');
+  const confirmation=cashPlanPaymentConfirmation(item.edit,asOf);
+  const note=[`사용자 누적 출금 확인 ${confirmed.toLocaleString('ko-KR')}원`,actual?`통장 실거래 ${actual.toLocaleString('ko-KR')}원과 겹치는 금액 제외`:'통장 거래 자동 확인 없음',item.confirmationComplete?'출금 완료 확인':'일부 출금 확인',confirmation?.returnedAmount?`반환 입금 직접 확인 ${confirmation.returnedDate} ${confirmation.returnedAmount.toLocaleString('ko-KR')}원`:'',confirmation?.memo].filter(Boolean).join(' · ');
   append({key:JSON.stringify(['confirmed',item.key]),kind:'confirmed',businessId:item.businessId,accountId:item.accountId,date,title:item.title,amount,note,source:'manual-confirmation',planLink:item.key,paymentKind:item.paymentKind,paymentStatus:item.paymentStatus});
  }
  const days:CashCalendarDay[]=[],cursor=parseFinanceDate(range.from)!;

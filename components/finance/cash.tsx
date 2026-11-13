@@ -20,6 +20,7 @@ import {useTossSettlements} from './use-toss-settlements';
 import {tossCalendarIncome,tossFundingIncome,tossCashForecastPlan} from '@/lib/finance/toss-funding';
 import {CashPlanEditorDialog} from './cash-plan-editor';
 import {PaymentConfirmationDialog} from './payment-confirmation-dialog';
+import {CashPlanActualCategoryDialog,type CashPlanActualCategorySelection} from './cash-plan-actual-category-dialog';
 import type {CashPlanEditState,CashPlanEditChange} from './use-cash-plan-edits';
 import {AccountFundingPanel} from './account-funding';
 import {FundingReportDialog} from './funding-report-dialog';
@@ -33,7 +34,7 @@ import {buildCashPlanFixedSyncChanges} from '@/lib/finance/cash-plan-fixed-sync'
 import type {FixedCostForwardRequest} from '@/lib/finance/cash-plan-series-forward';
 import {calendarMonthRange} from '@/lib/finance/transaction-calendar';
 import {cashPlanEstimateOptions} from '@/lib/finance/cash-plan-policy';
-import {buildCashPlanWorksheetModel,type CashPlanWorksheetRow} from '@/lib/finance/cash-plan-worksheet-model';
+import {buildCashPlanWorksheetModel,type CashPlanWorksheetActualOnlyRow,type CashPlanWorksheetRow} from '@/lib/finance/cash-plan-worksheet-model';
 import type {CashEstimateBusiness,CashEstimateGroup} from '@/lib/finance/cash-estimates';
 import {cashPlanPeriodError} from '@/lib/finance/cash-plan-period';
 import {accountBalanceRecordLabel,buildLatestCashBalances,latestBalanceRecordLabel,type LatestCashBusiness} from '@/lib/finance/latest-cash-balances';
@@ -185,6 +186,13 @@ export function CashView({data,asOf,biz,editState,focusDate='',refresh,onSaveFix
  const [selectedBusiness,setSelectedBusiness]=useState('');
  const [editingBusiness,setEditingBusiness]=useState('');
  const [confirmingKey,setConfirmingKey]=useState('');
+ const [actualCategorySelection,setActualCategorySelection]=useState<CashPlanActualCategorySelection|null>(null);
+ const actualCategoryTriggerRef=useRef<HTMLButtonElement|null>(null);
+ const openActualCategory=useCallback((row:CashPlanWorksheetActualOnlyRow,event:MouseEvent<HTMLButtonElement>)=>{
+  const transaction=row.editableTransactionId?data.transactions.find(item=>item.id===row.editableTransactionId):undefined;
+  if(!transaction)return;
+  actualCategoryTriggerRef.current=event.currentTarget;setActualCategorySelection({row,transaction});
+ },[data.transactions]);
  const confirmationTriggerRef=useRef<HTMLButtonElement|null>(null);
  const openPaymentConfirmation=useCallback((row:CashPlanWorksheetRow,event:MouseEvent<HTMLButtonElement>)=>{confirmationTriggerRef.current=event.currentTarget;setConfirmingKey(row.key);},[]);
  const editTriggerRef=useRef<HTMLButtonElement|null>(null);
@@ -249,7 +257,7 @@ export function CashView({data,asOf,biz,editState,focusDate='',refresh,onSaveFix
    <div className="cash-plan-tools"><div className="cash-plan-sync-actions" role="group" aria-label="자금 자료 동기화"><span className="cash-plan-tool-label">자료 동기화</span><ClobeBalanceSyncButton refresh={refresh} accounts={data.accounts}/><TossSettlementSyncButton state={toss}/><ClobeCardBillsPanel data={data} asOf={asOf} biz={biz} state={editState} range={range}/></div><p className="cash-plan-overview-note">현재 잔액 − 남은 지출{basis==='estimated'?' · 추정 예산':' · 등록 일정'}</p></div>
    {saveError&&<p className="cash-plan-period-error" role="alert"><FinancialText value={saveError}/></p>}
    {basis==='registered'&&unconfirmed.length>0&&<p className="cash-plan-warning" role="status"><TriangleAlert size={16}/><span>지급 확인 필요 {unconfirmed.length}건 · <FinancialValue value={won(unconfirmed.reduce((sum,item)=>sum+item.amount,0))}/><small>지난 일정은 남은 지출에서 제외 · 확인 전 필요자금 미확정</small></span></p>}
-   {visible.length?planView==='worksheet'?<CashPlanWorksheet plans={visible} estimates={estimatesByBusiness} worksheetBusinesses={worksheetBusinesses} latestBalances={latestBalances} basis={basis} selectedBusiness={selectedPlan?.business.id||''} onOpenDetail={openBusinessDetail} onEditBusiness={openEditor} onConfirmPayment={openPaymentConfirmation} confirmingKey={confirmingKey} saving={editState.saving} settlementIncome={settlementIncomeByBusiness}/>:<div className="cash-plan-overview-scroll" tabIndex={0} role="region" aria-label="사업자별 자금 요약표"><table className="cash-plan-overview-table">
+   {visible.length?planView==='worksheet'?<CashPlanWorksheet plans={visible} estimates={estimatesByBusiness} worksheetBusinesses={worksheetBusinesses} latestBalances={latestBalances} basis={basis} selectedBusiness={selectedPlan?.business.id||''} onOpenDetail={openBusinessDetail} onEditBusiness={openEditor} onConfirmPayment={openPaymentConfirmation} onEditActualCategory={openActualCategory} confirmingKey={confirmingKey} saving={editState.saving} settlementIncome={settlementIncomeByBusiness}/>:<div className="cash-plan-overview-scroll" tabIndex={0} role="region" aria-label="사업자별 자금 요약표"><table className="cash-plan-overview-table">
     <caption className="sr-only">{basis==='estimated'?'반복 출금을 추정한':'등록된 예정 지출 기준'} 사업자별 잔액과 가용자금. 모든 금액은 원 단위입니다.</caption>
     <thead><tr><th scope="col">사업자</th><th scope="col">현재 기록 잔액<small>최신 거래·Clobe 수집 기준</small></th><th scope="col">{basis==='estimated'?'추정 지출':'예정 지출'}<small>{basis==='estimated'?'확정 청구액 아님':'등록 항목만 반영'}</small></th><th scope="col">지출 후 잔액</th><th scope="col">가용자금<small>유보액 제외</small></th><th scope="col"><span className="sr-only">상세</span></th></tr></thead>
     <tbody>{visible.map(item=>{
@@ -278,7 +286,6 @@ export function CashView({data,asOf,biz,editState,focusDate='',refresh,onSaveFix
    </details>
   </Panel>
   <TossSettlementsPanel state={toss} data={data} biz={biz} range={range}/>
-  <CashPlanSeriesSummary rows={seriesMonths} fromMonth={seriesFromMonth} selectedMonth={range.from.slice(0,7)} onMonthChange={setSelectedSeriesMonth} onSelectMonth={selectSeriesMonth} onOpenBreakdown={openSeriesBreakdown} openedBreakdown={seriesBreakdownSelection} onSync={()=>void syncFixedFromWorksheet()} syncing={syncingFixed} syncDisabled={editState.loading||editState.saving||editState.edits===null||!!editState.error||!!editingBusiness||!!confirmingKey||!!seriesBreakdownSelection} syncError={fixedSyncError}/>
   <Dialog open={!!selectedPlan} onOpenChange={open=>{if(!open)setSelectedBusiness('');}}>
    <DialogContent className="cash-plan-dialog" showCloseButton={false} onCloseAutoFocus={event=>{event.preventDefault();detailTriggerRef.current?.focus({preventScroll:true});}}>
     <DialogClose asChild><Button type="button" variant="ghost" size="icon-xs" className="cash-plan-dialog-close" aria-label="닫기"><X size={16}/></Button></DialogClose>
@@ -287,6 +294,7 @@ export function CashView({data,asOf,biz,editState,focusDate='',refresh,onSaveFix
    </DialogContent>
   </Dialog>
   <AccountFundingPanel key={focusDate} plans={visible} estimates={estimatesByBusiness} latestBalances={latestBalances} basis={basis} range={plan.range} asOf={asOf} focusDate={focusDate} incoming={settlementIncome} calendarIncome={calendarIncome} data={data} planItems={editable.items}/>
+  <CashPlanSeriesSummary rows={seriesMonths} fromMonth={seriesFromMonth} selectedMonth={range.from.slice(0,7)} onMonthChange={setSelectedSeriesMonth} onSelectMonth={selectSeriesMonth} onOpenBreakdown={openSeriesBreakdown} openedBreakdown={seriesBreakdownSelection} onSync={()=>void syncFixedFromWorksheet()} syncing={syncingFixed} syncDisabled={editState.loading||editState.saving||editState.edits===null||!!editState.error||!!editingBusiness||!!confirmingKey||!!seriesBreakdownSelection} syncError={fixedSyncError}/>
   <div className={basis==='registered'?'analysis-grid':'cash-plan-simulator-only'}>
    {basis==='registered'&&<Panel title={privateText(providerForecast?'토스 정산·예정 지출 반영 잔액 추이':'예정 수입·지출을 반영한 잔액 추이')} subtitle={`${plan.range.from} ~ ${plan.range.to} · ${providerForecast?'수입은 토스 입금 예정만 반영 · 직접 등록 수입 별도':'현재 잔액에 남은 등록 일정 반영'} · 유보액 차감 전`}>
     {visible.some(item=>item.projected!==null&&!item.undatedExpenses?.length)&&projection.length>0?<>
@@ -313,7 +321,8 @@ export function CashView({data,asOf,biz,editState,focusDate='',refresh,onSaveFix
   <div className="tax-banner"><Info size={18}/><div><strong>사업자 간 이체 전 계약·이자·증빙을 확인하세요.</strong></div></div>
   </>:<Panel title="공동 지출 계획 설정" subtitle="저장된 수정·제외 설정을 확인한 뒤 자금계획을 계산합니다." action={<ClobeBalanceSyncButton refresh={refresh} accounts={data.accounts}/>}><div className="cash-plan-empty" role={editState.error?'alert':'status'}><p><FinancialText value={editState.error||'공동 계획 설정을 불러오고 있습니다…'}/></p>{editState.error&&<Button type="button" variant="outline" disabled={editState.loading} onClick={()=>void editState.refresh()}>{editState.loading?'다시 불러오는 중…':'설정 다시 불러오기'}</Button>}</div></Panel>}
   <CashPlanSeriesBreakdownDialog open={!!seriesBreakdownSelection} breakdown={seriesBreakdown} data={data} edits={editState.edits} saving={editState.saving} loadError={editState.error} onReload={reloadSeriesBreakdown} onSave={editState.save} onSaveFixedCosts={onSaveFixedCosts} onClose={()=>setSeriesBreakdownSelection(null)} returnFocusRef={seriesBreakdownTriggerRef}/>
-  <CashPlanEditorDialog business={data.businesses.find(item=>item.id===editingBusiness)} accounts={data.accounts} items={editable.items} edits={editState.edits??[]} range={range} basis={basis} saving={editState.saving} loadError={editState.error} onReload={editState.refresh} onSave={editState.save} onPreview={previewEdit} onClose={()=>setEditingBusiness('')} returnFocusRef={editTriggerRef}/>
-  <PaymentConfirmationDialog row={confirmationRow} business={data.businesses.find(item=>item.id===confirmationRow?.businessId)} accountName={data.accounts.find(item=>item.id===confirmationRow?.accountId)?.name||''} asOf={asOf} saving={editState.saving} loadError={editState.error} onReload={editState.refresh} onSave={editState.save} onClose={()=>setConfirmingKey('')} returnFocusRef={confirmationTriggerRef}/>
+  <CashPlanEditorDialog business={data.businesses.find(item=>item.id===editingBusiness)} accounts={data.accounts} categories={data.categories} aliases={data.aliases} items={editable.items} edits={editState.edits??[]} range={range} basis={basis} saving={editState.saving} loadError={editState.error} onReload={editState.refresh} onSave={editState.save} onPreview={previewEdit} onClose={()=>setEditingBusiness('')} returnFocusRef={editTriggerRef}/>
+  <CashPlanActualCategoryDialog selection={actualCategorySelection} currentTransaction={data.transactions.find(item=>item.id===actualCategorySelection?.transaction.id)} categories={data.categories} aliases={data.aliases} accountName={data.accounts.find(item=>item.id===actualCategorySelection?.transaction.account_id)?.name||'계좌 미지정'} businessName={data.businesses.find(item=>item.id===actualCategorySelection?.transaction.business_id)?.name||''} refresh={refresh} onClose={()=>setActualCategorySelection(null)} returnFocusRef={actualCategoryTriggerRef}/>
+  <PaymentConfirmationDialog row={confirmationRow} business={data.businesses.find(item=>item.id===confirmationRow?.businessId)} accountName={data.accounts.find(item=>item.id===confirmationRow?.accountId)?.name||''} categories={data.categories} aliases={data.aliases} asOf={asOf} saving={editState.saving} loadError={editState.error} onReload={editState.refresh} onSave={editState.save} onClose={()=>setConfirmingKey('')} returnFocusRef={confirmationTriggerRef}/>
  </>;
 }

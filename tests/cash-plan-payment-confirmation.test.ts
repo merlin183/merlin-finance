@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {cashPlanChangesSchema,type CashPlanEdit} from '../lib/finance/cash-plan-edits';
-import {cashPlanPaymentConfirmationChange} from '../lib/finance/cash-plan-payment-confirmation';
+import {cashPlanPaymentConfirmation,cashPlanPaymentConfirmationChange,cashPlanPaymentConfirmationNetAmount} from '../lib/finance/cash-plan-payment-confirmation';
 import {buildEditableCashPlan} from '../lib/finance/editable-cash-plan';
 import {buildCashPlanWorksheetModel} from '../lib/finance/cash-plan-worksheet-model';
 import {buildAccountFunding} from '../lib/finance/account-funding';
@@ -17,6 +17,11 @@ const history=['07','08','09'].map(month=>row(`past-${month}`,`2026-${month}-15`
 const data=(actual=0):Dataset=>({...emptyDataset,businesses:[{id:bid,name:'Synthetic company',representative:'',kind:'법인',reserve:0,color:'#123456'}],accounts:[{id:aid,business_id:bid,name:'Synthetic account',bank:'Synthetic bank',masked_number:'0001',opening_balance:1000,opening_balance_date:'2026-09-30'}],categories:[{id:'fees',name:'지급수수료',group_name:'영업지출',is_internal:false,is_operating:true}],transactions:[...history,...(actual?[row('bank-actual','2026-10-10',actual)]:[])]});
 const edit=(extra:Partial<CashPlanEdit>={}):CashPlanEdit=>({id:eid,business_id:bid,source_type:'estimated',source_key:cashEstimateSourceKey(history[0]),month:'2026-10',title:'Saved service',account_id:aid,plan_date:'2026-10-15',amount:100,memo:'Original memo',excluded:false,version:2,updated_at:'2026-10-12T00:00:00Z',confirmed_amount:40,confirmed_date:'2026-10-10',confirmation_complete:false,confirmation_memo:'Confirmed from bank',...extra});
 const model=(dataset:Dataset,edits:CashPlanEdit[],selected=range)=>buildEditableCashPlan(dataset,selected,asOf,edits);
+const returnEdit=(extra:Partial<CashPlanEdit>={},returnedAmount=30,returnedDate='2026-10-12'):CashPlanEdit=>{
+ const source=edit({confirmed_amount:80,...extra}),item=model(data(),[source]).items.find(item=>item.source_key===source.source_key)!;
+ const change=cashPlanPaymentConfirmationChange(item,{amount:source.confirmed_amount!,date:source.confirmed_date!,complete:source.confirmation_complete!,memo:source.confirmation_memo,returnedAmount,returnedDate});
+ return {...source,confirmation_memo:change.confirmation_memo};
+};
 
 test('부분 출금 확인과 나중에 적용한 동일 은행 실적은 한번만 차감하고 잔액은 그대로다',()=>{
  const saved=edit(),dataset=data(),before=JSON.stringify({saved,dataset});
@@ -78,4 +83,76 @@ test('확인 API schema는 날짜·금액·소유권·중복·완료 상태를 �
  assert.ok(cashPlanChangesSchema.safeParse({changes:[clear]}).success);assert.equal(clear.confirmed_amount,null);assert.equal(clear.confirmation_memo,'');
  assert.throws(()=>cashPlanPaymentConfirmationChange(item,null));
  assert.throws(()=>cashPlanPaymentConfirmationChange({...item,paymentKind:'tax'},{amount:1,date:'2026-10-10',complete:true}));
+});
+
+test('명시 반환은 기존 확인 메모에 원자적으로 저장하고 원래 출금·순지출·사용자 메모를 분리한다',()=>{
+ const item=model(data(),[]).items[0],userMemo='  Receipt checked\nKeep this note  ';
+ const change=cashPlanPaymentConfirmationChange(item,{amount:80,date:'2026-10-10',complete:false,memo:userMemo,returnedAmount:30,returnedDate:'2026-10-12'});
+ assert.ok(cashPlanChangesSchema.safeParse({changes:[change]}).success);
+ assert.equal(change.confirmed_amount,80);assert.equal('returnedAmount' in change,false);assert.match(change.confirmation_memo,/^\[cash-plan-return:v1:/);
+ const saved=edit({...change}),confirmation=cashPlanPaymentConfirmation(saved,asOf)!;
+ assert.deepEqual(confirmation,{amount:80,date:'2026-10-10',complete:false,memo:userMemo,returnedAmount:30,returnedDate:'2026-10-12'});
+ assert.equal(cashPlanPaymentConfirmationNetAmount(80,confirmation),50);
+ const legacy=cashPlanPaymentConfirmation(edit({confirmed_amount:40}),asOf)!;
+ assert.deepEqual(legacy,{amount:40,date:'2026-10-10',complete:false,memo:'Confirmed from bank'});
+ assert.equal(cashPlanPaymentConfirmationNetAmount(80,legacy),80);
+});
+
+test('반환 후 남은 예산만 복구하고 이후 추가 출금은 순지출에 합산하며 원본과 현재 잔액을 바꾸지 않는다',()=>{
+ const saved=returnEdit(),dataset=data(80),before=JSON.stringify({saved,dataset});
+ const returned=model(dataset,[saved]),withoutReturn=model(dataset,[edit({confirmed_amount:80})]);
+ assert.deepEqual([returned.items[0].recordedAmount,returned.items[0].confirmedAmount,returned.items[0].remainingAmount],[80,80,50]);
+ assert.equal(withoutReturn.items[0].remainingAmount,20);
+ assert.equal(returned.plan.businesses[0].balance,withoutReturn.plan.businesses[0].balance);
+ const estimates=new Map(returned.estimates.businesses.map(item=>[item.business.id,item]));
+ assert.equal(returned.estimates.businesses[0].total,50);
+ assert.equal(buildAccountFunding(returned.plan.businesses,estimates,'estimated')[0].expenses,50);
+ assert.equal(buildFundingReport(returned.plan.businesses,estimates,'estimated',range,asOf).businesses[0].funding.expenses,50);
+ assert.equal(model(data(120),[saved]).items[0].remainingAmount,10);
+ assert.equal(model(data(150),[saved]).items[0].remainingAmount,0);
+ assert.equal(JSON.stringify({saved,dataset}),before);
+ const worksheet=buildCashPlanWorksheetModel({data:dataset,editable:returned,basis:'estimated',range,asOf}).businesses[0];
+ assert.equal(worksheet.rows[0].recordedAmount,80);assert.equal(worksheet.rows[0].displayDateIsActual,true);
+ assert.equal(worksheet.rows[0].recordedPaymentDates[0].amount,80);assert.equal(worksheet.actualOnlyRows.length,0);
+});
+
+test('전액 반환은 출금 확인액 양수를 보존하면서 순지출 0과 미완료 예산을 구분한다',()=>{
+ const saved=returnEdit({},80),confirmation=cashPlanPaymentConfirmation(saved,asOf)!;
+ assert.equal(confirmation.amount,80);assert.equal(cashPlanPaymentConfirmationNetAmount(80,confirmation),0);
+ assert.equal(model(data(80),[saved]).items[0].remainingAmount,100);
+ assert.equal(model(data(80),[{...saved,confirmation_complete:true}]).items[0].remainingAmount,0);
+ const item=model(data(80),[saved]).items[0],clear=cashPlanPaymentConfirmationChange(item,null);
+ assert.equal(clear.confirmation_memo,'');
+ assert.equal(model(data(80),[edit({...clear})]).items[0].remainingAmount,20);
+});
+
+test('반환일은 마지막 누적 출금일보다 이를 수 있으며 날짜 미정 계획은 반환일의 조회구간만 반영한다',()=>{
+ const saved=returnEdit({plan_date:null,amount:310,confirmed_amount:80,confirmed_date:'2026-10-10'},30,'2026-10-12');
+ assert.equal(model(data(80),[saved]).items[0].remainingAmount,260);
+ assert.equal(model(data(80),[saved],{from:'2026-10-01',to:'2026-10-10'}).items[0].remainingAmount,20);
+ assert.equal(model(data(80),[saved],{from:'2026-10-11',to:'2026-10-13'}).items[0].remainingAmount,30);
+ const earlierReturn=returnEdit({plan_date:null,amount:310,confirmed_amount:100,confirmed_date:'2026-10-11'},30,'2026-10-08');
+ assert.equal(cashPlanPaymentConfirmation(earlierReturn,asOf)?.returnedDate,'2026-10-08');
+ assert.equal(model(data(80),[earlierReturn],{from:'2026-10-01',to:'2026-10-10'}).items[0].remainingAmount,50);
+});
+
+test('미래·다른 달·비정상·중복 반환 표식은 은행 실적을 줄이지 않고 내부 표식도 메모에 노출하지 않는다',()=>{
+ const marker=(value:unknown,version='v1')=>`[cash-plan-return:${version}:${encodeURIComponent(JSON.stringify(value))}]`;
+ const invalid=[marker({amount:30,date:'2026-10-14'}),marker({amount:30,date:'2026-09-30'}),marker({amount:30,date:'2026-10-32'}),marker({amount:0,date:'2026-10-12'}),marker({amount:-1,date:'2026-10-12'}),marker({amount:81,date:'2026-10-12'}),marker({amount:Number.MAX_SAFE_INTEGER+1,date:'2026-10-12'}),marker({amount:'30',date:'2026-10-12'}),marker({amount:30,date:'2026-10-12',extra:true}),marker({amount:30,date:'2026-10-12'},'v2'),'[cash-plan-return:v1:%malformed]'];
+ const valid=marker({amount:30,date:'2026-10-12'});invalid.push(valid+'\n'+valid);
+ for(const stored of invalid){
+  const saved=edit({confirmed_amount:80,confirmation_memo:stored+'\nVisible note'}),confirmation=cashPlanPaymentConfirmation(saved,asOf)!;
+  assert.equal(confirmation.returnedAmount,undefined);assert.equal(confirmation.memo,'Visible note');
+  assert.equal(cashPlanPaymentConfirmationNetAmount(80,confirmation),80);
+  assert.equal(model(data(80),[saved]).items[0].remainingAmount,20);
+ }
+});
+
+test('반환 저장은 잘못된 금액·날짜·붙여넣은 내부 표식과 전체 메모 길이를 거부하며 반환 없음은 기존 메모를 보존한다',()=>{
+ const item=model(data(),[]).items[0],base={amount:80,date:'2026-10-10',complete:false,memo:'Original memo'};
+ for(const patch of [{returnedAmount:-1,returnedDate:'2026-10-12'},{returnedAmount:81,returnedDate:'2026-10-12'},{returnedAmount:30.5,returnedDate:'2026-10-12'},{returnedAmount:30,returnedDate:'2026-09-30'},{returnedAmount:30,returnedDate:'2026-10-32'},{returnedAmount:30},{returnedDate:'2026-10-12'}])assert.throws(()=>cashPlanPaymentConfirmationChange(item,{...base,...patch}));
+ for(const memo of ['[cash-plan-return:v1:any]','note [cash-plan-return:v2:any]'])assert.throws(()=>cashPlanPaymentConfirmationChange(item,{...base,memo}));
+ assert.throws(()=>cashPlanPaymentConfirmationChange(item,{...base,memo:'x'.repeat(2000),returnedAmount:30,returnedDate:'2026-10-12'}));
+ assert.equal(cashPlanPaymentConfirmationChange(item,{...base,memo:'x'.repeat(2000)}).confirmation_memo.length,2000);
+ assert.equal(cashPlanPaymentConfirmationChange(item,{...base,returnedAmount:0,returnedDate:'2026-10-12'}).confirmation_memo,'Original memo');
 });

@@ -4,9 +4,10 @@ import {calendarMonthRange,shiftCalendarMonth} from './transaction-calendar';
 import {resolveCashPlanPeriod} from './cash-plan-period';
 import type {Business,Category,Dataset,Transaction} from './types';
 import type {PaymentKind,PaymentStatus} from './cash-plan-edits';
+import {cashEstimateSourceIdentity} from './cash-plan-category';
 
 export type CashEstimateOptions={excludedBusinessCategories?:readonly {businessId:string;categoryId:string}[]};
-export type CashEstimateGroup={key:string;businessId:string;accountId:string;label:string;categoryNames:string[];monthlyAverage:number;monthlyAmounts:{month:string;amount:number;count:number}[];sourceCount:number;sourceIds:string[];expectedDay:number|null;monthEnd:boolean};
+export type CashEstimateGroup={key:string;businessId:string;accountId:string;label:string;categoryId:string|null;categoryNames:string[];monthlyAverage:number;monthlyAmounts:{month:string;amount:number;count:number}[];sourceCount:number;sourceIds:string[];expectedDay:number|null;monthEnd:boolean};
 export type CashDatedEstimate={groupKey:string;businessId:string;accountId:string;title:string;date:string;amount:number;originalAmount?:number;recordedAmount?:number;memo?:string;sourceType?:'estimated'|'manual';sourceAccountId?:string;paymentKind?:PaymentKind;paymentStatus?:PaymentStatus};
 export type CashUndatedBudget={groupKey:string;businessId:string;accountId:string;title:string;month:string;from:string;to:string;coveredDays:number;monthDays:number;monthlyAmount:number;amount:number;kind:'period-budget';originalAmount?:number;recordedAmount?:number;expectedDate?:string;status?:'date-passed';memo?:string;sourceType?:'estimated'|'manual';sourceAccountId?:string;paymentKind?:PaymentKind;paymentStatus?:PaymentStatus};
 export type CashEstimateExclusion={groupKey:string;businessId:string;accountId:string;label:string;reason:string;sourceCount:number};
@@ -30,10 +31,12 @@ export function cashEstimateSourceKey(transaction:Transaction,identity=sourceIde
 }
 const sourceGroupKey=cashEstimateSourceKey;
 
-function isInternalOrLoan(transaction:Transaction,category:Category|undefined):boolean {
- return transaction.is_internal||!!category?.is_internal||categoryKey(category?.group_name||'')==='내부이동'
-  ||internalCategories.has(categoryKey(category?.name||transaction.raw_gwamok));
+export function cashPlanInternalOrLoan(transaction:Transaction,category:Category|undefined):boolean {
+ if(category)return (!transaction.manually_classified&&transaction.is_internal)||!!category.is_internal||categoryKey(category.group_name||'')==='내부이동'||internalCategories.has(categoryKey(category.name));
+ const raw=[transaction.raw_gwamok,transaction.description,...Object.values(transaction.source_details??{})].join(' ');
+ return transaction.is_internal||internalCategories.has(categoryKey(transaction.raw_gwamok))||/(?:대여금|차입금|대출(?!이자|금이자)(?:금|상환)?|내부\s*이동|계좌\s*(?:간\s*)?이체)/.test(raw);
 }
+const isInternalOrLoan=cashPlanInternalOrLoan;
 
 function projectionMonths(range:DateRange){
  const monthIndex=(date:string)=>Number(date.slice(0,4))*12+Number(date.slice(5,7))-1;
@@ -77,7 +80,8 @@ export function buildCashEstimateBudgetsForRange(data:Dataset,range:DateRange,as
  * counterparty or a composite description. Reconcile only an exact, unique
  * description-only budget label; historical counterparty identities stay apart. */
 function bankLabelBudgetMatcher(data:Dataset,original:CashEstimates|undefined,protectedSourceKeys:Iterable<string>){
- const protectedKeys=new Set(protectedSourceKeys),sourceKeys=new Set(protectedKeys),activeKeys=new Set<string>();
+ const legacy=(key:string)=>cashEstimateSourceIdentity(key)?.legacyKey??key;
+ const protectedKeys=new Set([...protectedSourceKeys].map(legacy)),sourceKeys=new Set(protectedKeys),activeKeys=new Set<string>();
  const targets=new Map<string,string>(),owners=new Map<string,Set<string>>(),protectedTargets=new Set<string>();
  const compositeOwners=new Map<string,Set<string>>();
  const currentParties=new Map<string,Set<string>>();
@@ -86,12 +90,12 @@ function bankLabelBudgetMatcher(data:Dataset,original:CashEstimates|undefined,pr
  const meaningful=(label:string)=>!!label&&!genericMerchant.test(label)&&/\p{L}/u.test(label);
  for(const business of original?.businesses??[]){
   for(const group of business.groups){
-   sourceKeys.add(group.key);activeKeys.add(group.key);
+   const key=legacy(group.key);sourceKeys.add(key);activeKeys.add(key);
    const label=normalized(group.label);
-   if(meaningful(label)&&group.key===JSON.stringify([group.businessId,group.accountId,`description:${label}`]))
-    targets.set(labelKey(group.businessId,group.accountId,label),group.key);
+   if(meaningful(label)&&key===JSON.stringify([group.businessId,group.accountId,`description:${label}`]))
+    targets.set(labelKey(group.businessId,group.accountId,label),key);
   }
-  for(const excluded of business.exclusions)sourceKeys.add(excluded.groupKey);
+  for(const excluded of business.exclusions)sourceKeys.add(legacy(excluded.groupKey));
  }
  // A saved estimate remains a plan after its source leaves the rolling
  // estimator. Only canonical description identities can supply a bank label;
@@ -160,17 +164,49 @@ function bankLabelBudgetMatcher(data:Dataset,original:CashEstimates|undefined,pr
 
 /** Exact source identities, with an optional unambiguous original-bank-label
  * bridge. Edited titles and destination account guesses are never evidence. */
-export function cashEstimateRecordedTransactions(data:Dataset,asOf:string,options:CashEstimateOptions={},original?:CashEstimates,protectedSourceKeys:Iterable<string>=[]):Map<string,Transaction[]> {
+export function cashEstimateRecordedTransactions(data:Dataset,asOf:string,options:CashEstimateOptions={},original?:CashEstimates,protectedSourceKeys:Iterable<string>=[],sourceCategories?:ReadonlyMap<string,string|null>,bankCategoryGuards?:ReadonlyMap<string,string>):Map<string,Transaction[]> {
  const categories=new Map(data.categories.map(category=>[category.id,category]));
  const linkedInternalWithdrawals=new Set(data.links.map(link=>link.out_transaction_id));
  const excludedPolicies=new Set((options.excludedBusinessCategories??[]).map(item=>JSON.stringify([item.businessId,item.categoryId])));
  const result=new Map<string,Transaction[]>();
- const matchBudget=bankLabelBudgetMatcher(data,original,protectedSourceKeys);
+ const protectedKeys=[...protectedSourceKeys],matchBudget=bankLabelBudgetMatcher(data,original,protectedKeys);
+ const targets=new Map<string,Map<string,string|null>>();
+ const add=(key:string,categoryId:string|null)=>{
+  const identity=cashEstimateSourceIdentity(key);if(!identity)return;
+  if(identity.categoryId&&!categories.has(identity.categoryId))return;
+  const found=targets.get(identity.legacyKey)??new Map<string,string|null>();
+  found.set(key,categoryId&&categories.has(categoryId)?categoryId:null);targets.set(identity.legacyKey,found);
+ };
+ if(!sourceCategories)for(const business of original?.businesses??[])for(const group of business.groups)add(group.key,group.categoryId);
+ const unresolved=new Set<string>();
+ const historicalCategories=new Map<string,Set<string|null>>(),currentCategoriesBySource=new Map<string,Set<string|null>>();
+ for(const row of data.transactions){
+  if(row.direction!=='out'||row.txn_date>asOf||isInternalOrLoan(row,categories.get(row.category_id??'')))continue;
+  const key=cashEstimateSourceKey(row),categoryId=categories.has(row.category_id??'')?row.category_id:null;
+  const current=currentCategoriesBySource.get(key)??new Set<string|null>();current.add(categoryId);currentCategoriesBySource.set(key,current);
+  if(original&&row.txn_date>=original.basis.from&&row.txn_date<=original.basis.to){
+   const history=historicalCategories.get(key)??new Set<string|null>();history.add(categoryId);historicalCategories.set(key,history);
+  }
+ }
+ for(const key of protectedKeys){
+  const identity=cashEstimateSourceIdentity(key);if(!identity)continue;
+  const historical=historicalCategories.get(identity.legacyKey)??new Set<string|null>();
+  add(key,sourceCategories?.has(key)?sourceCategories.get(key)!:identity.categoryId??(historical.size===1?[...historical][0]:null));
+  const currentCategories=currentCategoriesBySource.get(identity.legacyKey)??new Set<string|null>();
+  if(!identity.categoryId&&(historical.size>1||!historical.size&&currentCategories.size>1)&&!sourceCategories?.get(key))unresolved.add(key);
+ }
+ if(sourceCategories)for(const [key,categoryId] of sourceCategories)add(key,categoryId);
  for(const row of data.transactions){
   if(!parseFinanceDate(row.txn_date)||row.txn_date>asOf||row.direction!=='out'||!Number.isSafeInteger(row.amount)||row.amount<=0
-   ||linkedInternalWithdrawals.has(row.id)||isInternalOrLoan(row,categories.get(row.category_id??''))
+   ||linkedInternalWithdrawals.has(row.id)||isInternalOrLoan(row,categories.get(row.category_id??''))&&!(sourceCategories&&categories.has(row.category_id??'')&&[...sourceCategories.values()].includes(row.category_id))
    ||excludedPolicies.has(JSON.stringify([row.business_id,row.category_id])))continue;
-  const key=matchBudget(row,sourceGroupKey(row)),rows=result.get(key);
+  const guard=bankCategoryGuards?.get(row.id);
+  const base=matchBudget(row,sourceGroupKey(row)),possible=targets.get(base),categoryId=categories.has(row.category_id??'')?row.category_id:guard&&categories.has(guard)?guard:null;
+  const compatible=possible?[...possible].filter(([key,category])=>!unresolved.has(key)&&(categoryId?category===categoryId||category===null&&possible.size===1:possible.size===1)):[];
+  // A known incompatible category or ambiguous legacy bucket is never evidence
+  // for another budget. Unknown bank rows need a single source candidate.
+  if(possible&&compatible.length!==1)continue;
+  const key=possible?compatible[0][0]:base,rows=result.get(key);
   if(rows)rows.push(row);else result.set(key,[row]);
  }
  return result;
@@ -225,18 +261,25 @@ function estimatePeriod(data:Dataset,asOf:string,horizon:number,range:DateRange,
  const categories=new Map(data.categories.map(category=>[category.id,category]));
  const linkedInternalWithdrawals=new Set(data.links.map(link=>link.out_transaction_id));
  const excludedPolicies=new Set((options.excludedBusinessCategories||[]).map(item=>JSON.stringify([item.businessId,item.categoryId])));
- const sourceGroups=new Map<string,{businessId:string;accountId:string;label:string;ambiguous:boolean;rows:Transaction[]}>();
+ const sourceGroups=new Map<string,{baseKey:string;categoryId:string|null;businessId:string;accountId:string;label:string;ambiguous:boolean;rows:Transaction[]}>();
  for(const transaction of data.transactions){
   if(transaction.direction!=='out'||transaction.txn_date<basis.from||transaction.txn_date>basis.to||!parseFinanceDate(transaction.txn_date))continue;
-  const identity=sourceIdentity(transaction),key=sourceGroupKey(transaction,identity);
+  const identity=sourceIdentity(transaction),baseKey=sourceGroupKey(transaction,identity),categoryId=categories.has(transaction.category_id??'')?transaction.category_id:null;
+  const key=JSON.stringify([baseKey,categoryId]);
   const found=sourceGroups.get(key);
   if(found)found.rows.push(transaction);
-  else sourceGroups.set(key,{businessId:transaction.business_id,accountId:transaction.account_id,label:identity.label,ambiguous:identity.ambiguous,rows:[transaction]});
+  else sourceGroups.set(key,{baseKey,categoryId,businessId:transaction.business_id,accountId:transaction.account_id,label:identity.label,ambiguous:identity.ambiguous,rows:[transaction]});
  }
  const periods=projectionMonths(range);
+ const eligibleCategoryCounts=new Map<string,number>();
+ for(const source of sourceGroups.values())if(!source.rows.some(row=>linkedInternalWithdrawals.has(row.id)||isInternalOrLoan(row,categories.get(row.category_id??''))||excludedPolicies.has(JSON.stringify([row.business_id,row.category_id]))))
+  eligibleCategoryCounts.set(source.baseKey,(eligibleCategoryCounts.get(source.baseKey)??0)+1);
  const businesses=data.businesses.map((business):CashEstimateBusiness=>({business,total:0,dated:[],undated:[],groups:[],exclusions:[]}));
  const byBusiness=new Map(businesses.map(item=>[item.business.id,item]));
- for(const [key,source] of sourceGroups){
+ for(const source of sourceGroups.values()){
+  // A sole expense category keeps the historic key, including when a separate
+  // loan bucket exists. Multiple known expense categories get explicit keys.
+  const key=(eligibleCategoryCounts.get(source.baseKey)??0)>1&&source.categoryId?JSON.stringify([...JSON.parse(source.baseKey),source.categoryId]):source.baseKey;
   const business=byBusiness.get(source.businessId);if(!business)continue;
   const rows=[...source.rows].sort((left,right)=>compareText(left.txn_date,right.txn_date)||compareText(left.id,right.id));
   const monthlyAmounts=months.map(month=>{
@@ -263,8 +306,8 @@ function estimatePeriod(data:Dataset,asOf:string,horizon:number,range:DateRange,
   const median=days.length%2?days[Math.floor(days.length/2)]:(days[days.length/2-1]+days[days.length/2])/2;
   const expectedDay=stable?(monthEnd?31:Math.round(median)):null;
   const monthlyAverage=Math.round(monthlyAmounts.reduce((sum,item)=>sum+item.amount,0)/3);
-  const categoryNames=[...new Set(rows.map(row=>categories.get(row.category_id||'')?.name||row.raw_gwamok||'미분류'))].sort(compareText);
-  const group:CashEstimateGroup={key,businessId:source.businessId,accountId:source.accountId,label:source.label,categoryNames,monthlyAverage,monthlyAmounts,sourceCount:rows.length,sourceIds:rows.map(row=>row.id),expectedDay,monthEnd};
+  const categoryNames=source.categoryId?[categories.get(source.categoryId)!.name]:[...new Set(rows.map(row=>row.raw_gwamok||'미분류'))].sort(compareText);
+  const group:CashEstimateGroup={key,businessId:source.businessId,accountId:source.accountId,label:source.label,categoryId:source.categoryId,categoryNames,monthlyAverage,monthlyAmounts,sourceCount:rows.length,sourceIds:rows.map(row=>row.id),expectedDay,monthEnd};
   business.groups.push(group);
   for(const period of periods){
    if(expectedDay!==null){

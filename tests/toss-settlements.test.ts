@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {tossMerchants,publicTossMerchants} from '../lib/toss/config';
+import {tossMerchants,publicTossMerchants,TossError} from '../lib/toss/config';
 import {normalizeTossSettlement,readTossSettlements,tossSyncRange,TOSS_SETTLEMENT_PAGE_SIZE} from '../lib/toss/client';
 import {reconcileTossSettlements} from '../lib/toss/reconcile';
 import {tossSettlementHandlers} from '../lib/toss/route';
@@ -42,6 +42,66 @@ test('provider authorization/errors, repeated full pages, conflicting IDs or inv
  await assert.rejects(()=>readTossSettlements([merchant],range,new AbortController().signal,()=>now,async()=>Response.json([source({mId:'foreign'})])));
  const repeated=Array.from({length:TOSS_SETTLEMENT_PAGE_SIZE},(_,i)=>source({transactionKey:`txn-${i}`}));
  await assert.rejects(()=>readTossSettlements([merchant],range,new AbortController().signal,()=>now,async()=>Response.json(repeated)));
+});
+
+test('only an exact access-policy code on HTTP 403 identifies network restrictions without exposing provider messages or retrying',async()=>{
+ const privateMessage='synthetic-private-provider-message';
+ for(const item of [
+  {status:403,payload:{code:'API_KEY_ACCESS_DENIED',message:privateMessage},expected:'provider_access'},
+  {status:401,payload:{code:'API_KEY_ACCESS_DENIED',message:privateMessage},expected:'provider_auth'},
+  {status:403,payload:{code:'UNAUTHORIZED_KEY',message:privateMessage},expected:'provider_auth'},
+  {status:403,payload:{code:'api_key_access_denied',message:privateMessage},expected:'provider_auth'},
+  {status:403,payload:{code:'API_KEY_ACCESS_DENIED '},expected:'provider_auth'},
+  {status:403,payload:[{code:'API_KEY_ACCESS_DENIED'}],expected:'provider_auth'},
+  {status:403,payload:{error:{code:'API_KEY_ACCESS_DENIED'}},expected:'provider_auth'},
+ ]){
+  let calls=0;
+  await assert.rejects(()=>readTossSettlements([merchant],range,new AbortController().signal,()=>now,async()=>{calls++;return Response.json(item.payload,{status:item.status});}),error=>{
+   assert.ok(error instanceof TossError);assert.equal(error.code,item.expected);
+   assert.ok(!error.message.includes(privateMessage));assert.ok(!error.message.includes(merchant.secretKey));
+   if(item.expected==='provider_access')assert.match(error.message,/접근 정책.*서버.*IP·국가/);
+   return true;
+  });
+  assert.equal(calls,1);
+ }
+});
+
+test('access-policy diagnosis safely rejects malformed, missing, unreadable and oversized error bodies',async()=>{
+ let oversizedStreamCancelled=false;
+ const factories=[
+  ()=>new Response('{"code":"API_KEY_ACCESS_DENIED",',{status:403}),
+  ()=>new Response(null,{status:403}),
+  ()=>new Response('null',{status:403}),
+  ()=>new Response('{"code":"API_KEY_ACCESS_DENIED"}',{status:403,headers:{'Content-Length':'4097'}}),
+  ()=>Response.json({code:'API_KEY_ACCESS_DENIED',message:'비'.repeat(1500)},{status:403}),
+  ()=>new Response(new ReadableStream<Uint8Array>({
+   start(controller){controller.enqueue(new TextEncoder().encode('{"code":"API_KEY_ACCESS_DENIED","message":"'+'x'.repeat(4096)));},
+   cancel(){oversizedStreamCancelled=true;},
+  }),{status:403}),
+  ()=>new Response(new ReadableStream<Uint8Array>({start(controller){controller.error(Error('synthetic-private-stream-error'));}}),{status:403}),
+ ];
+ for(const response of factories){
+  await assert.rejects(()=>readTossSettlements([merchant],range,new AbortController().signal,()=>now,async()=>response()),error=>{
+   assert.ok(error instanceof TossError);assert.equal(error.code,'provider_auth');assert.ok(!error.message.includes('synthetic-private'));return true;
+  });
+ }
+ assert.equal(oversizedStreamCancelled,true);
+});
+
+test('a denied later merchant releases the lease and preserves every saved settlement and successful timestamp',async()=>{
+ const second={...merchant,merchantId:'second'};
+ const saved={merchants:publicTossMerchants([merchant,second]),settlements:[row()],lastSyncedAt:new Date(now-86400000).toISOString(),range};
+ const original=JSON.stringify(saved);let saves=0,claims=0,releases=0,calls=0;
+ const store:TossStore={read:async()=>saved,claim:async()=>{claims++;},release:async()=>{releases++;},save:async()=>{saves++;throw Error('must-not-save');}};
+ const handlers=tossSettlementHandlers({authenticate:async()=>store,origin:()=> 'https://example.test',merchants:()=>[merchant,second],now:()=>now,fetcher:async()=>{
+  calls++;return calls===1?Response.json([source()]):Response.json({code:'API_KEY_ACCESS_DENIED',message:'synthetic-private-provider-message '+merchant.secretKey},{status:403});
+ }});
+ const request=new Request('https://example.test/api/toss/settlements',{method:'POST',headers:{Origin:'https://example.test','Content-Type':'application/json'},body:'{}'});
+ const response=await handlers.POST(request),payload=await response.json();
+ assert.equal(response.status,502);assert.deepEqual(payload,{error:new TossError('provider_access').message});
+ assert.equal(claims,1);assert.equal(releases,1);assert.equal(saves,0);assert.equal(calls,2);assert.equal(JSON.stringify(saved),original);
+ const after=await (await handlers.GET()).json() as TossSettlementResponse;
+ assert.equal(after.lastSyncedAt,saved.lastSyncedAt);assert.deepEqual(after.settlements,saved.settlements);assert.deepEqual(after.range,range);
 });
 test('reconciliation never changes cash, adds future net payouts only, and preserves cancelled/split-MID source identity',()=>{
  const data=dataset(),original=JSON.stringify(data),second={...merchant,merchantId:'second'};

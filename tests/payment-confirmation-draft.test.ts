@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {initialPaymentConfirmationDraft,initialPaymentConfirmationMode,initialPlannedPaymentDraft,paymentConfirmationDraftError,paymentConfirmationDraftValues,paymentConfirmationDraftsDirty,plannedPaymentDraftError,plannedPaymentDraftValues,updatePaymentConfirmationDraft,type PaymentConfirmationDraft,type PaymentConfirmationDrafts} from '../components/finance/payment-confirmation-draft';
+import {initialPaymentConfirmationDraft,paymentConfirmationSourceGross,paymentConfirmationReturnPatch,initialPaymentConfirmationMode,initialPlannedPaymentDraft,paymentConfirmationDraftError,paymentConfirmationDraftValues,paymentConfirmationDraftsDirty,plannedPaymentDraftError,plannedPaymentDraftValues,updatePaymentConfirmationDraft,type PaymentConfirmationDraft,type PaymentConfirmationDrafts} from '../components/finance/payment-confirmation-draft';
 
 const draft:PaymentConfirmationDraft={amount:'100,000',date:'2027-04-10',complete:false,memo:'확인 메모'};
 
@@ -76,4 +76,53 @@ test('모드를 오가도 각 입력을 보존하고 어느 쪽의 미저장 변
  assert.equal(actual.planned,planned.planned);assert.equal(actual.actual.amount,'80000');assert.equal(actual.actual.complete,false);
  assert.equal(paymentConfirmationDraftsDirty(original,actual),true);
  assert.equal(paymentConfirmationDraftsDirty(original,updatePaymentConfirmationDraft(original,'actual',{complete:false})),true);
+});
+
+
+test('반환은 명시적으로 선택해야 하며 저장된 작은 확인액을 자동으로 반환으로 해석하지 않는다',()=>{
+ const old=initialPaymentConfirmationDraft({confirmation:{amount:90000,date:'2027-04-06',complete:true,memo:''},recordedAmount:240000,originalAmount:200000});
+ assert.equal(old.returnEnabled,undefined);assert.equal(old.amount,'90000');
+ const enabled={...old,...paymentConfirmationReturnPatch(old,true,240000,'2027-04-12')};
+ assert.equal(enabled.amount,'240000');assert.equal(enabled.returnedAmount,'150000');assert.equal(enabled.returnedDate,'2027-04-06');
+ assert.equal(paymentConfirmationDraftError(enabled,'2027-04','2027-04-12'),'');
+ assert.deepEqual(paymentConfirmationDraftValues(enabled),{amount:240000,date:'2027-04-06',complete:true,memo:'',returnedAmount:150000,returnedDate:'2027-04-06'});
+ const cleared={...enabled,...paymentConfirmationReturnPatch(enabled,false)};
+ assert.equal('returnedAmount' in paymentConfirmationDraftValues(cleared),false);
+ assert.equal(old.amount,'90000');
+});
+
+test('반환 입력은 원 출금 총액과 실제 같은 달의 입금일을 검증하고 전액 반환을 허용한다',()=>{
+ const returned:PaymentConfirmationDraft={...draft,returnEnabled:true,returnedAmount:'100,000',returnedDate:'2027-04-11'};
+ assert.equal(paymentConfirmationDraftError(returned,'2027-04','2027-04-12'),'');
+ for(const amount of ['0','-1','1.5','1e4','',String(Number.MAX_SAFE_INTEGER+1)])assert.match(paymentConfirmationDraftError({...returned,returnedAmount:amount},'2027-04','2027-04-12'),/돌려받은 금액/);
+ assert.match(paymentConfirmationDraftError({...returned,returnedAmount:'100001'},'2027-04','2027-04-12'),/누적 출금액을 넘을/);
+ for(const date of ['', '2027-02-30','2027-03-31','2027-05-01'])assert.match(paymentConfirmationDraftError({...returned,returnedDate:date},'2027-04','2027-04-12'),/반환 입금일/);
+ assert.match(paymentConfirmationDraftError({...returned,returnedDate:'2027-04-13'},'2027-04','2027-04-12'),/지나지 않은 날짜/);
+ assert.equal(paymentConfirmationDraftError({...returned,returnEnabled:false,returnedAmount:'invalid',returnedDate:'invalid'},'2027-04','2027-04-12'),'');
+});
+
+test('반환 확인을 다시 열면 원 출금·반환·메모를 보존하고 모드 전환과 미저장 감지에 포함한다',()=>{
+ const confirmation={amount:240000,date:'2027-04-06',complete:false,memo:'반환 근거',returnedAmount:50000,returnedDate:'2027-04-08'};
+ const actual=initialPaymentConfirmationDraft({confirmation,recordedAmount:260000,originalAmount:300000});
+ assert.deepEqual(actual,{amount:'240000',date:'2027-04-06',complete:false,memo:'반환 근거',returnEnabled:true,returnedAmount:'50000',returnedDate:'2027-04-08'});
+ const original:PaymentConfirmationDrafts={actual,planned:{amount:'300000',date:'2027-04-20',memo:''}};
+ assert.equal(paymentConfirmationDraftsDirty(original,original),false);
+ for(const patch of [{returnEnabled:false},{returnedAmount:'60000'},{returnedDate:'2027-04-09'}])assert.equal(paymentConfirmationDraftsDirty(original,updatePaymentConfirmationDraft(original,'actual',patch)),true);
+ const planned=updatePaymentConfirmationDraft(original,'planned',{returnedAmount:'99999',returnedDate:'2027-04-10',returnEnabled:true});
+ assert.equal(planned.actual,actual);assert.equal('returnedAmount' in planned.planned,false);
+ assert.equal('returnedAmount' in plannedPaymentDraftValues({...original.planned,...actual}),false);
+});
+
+
+test('출금 확인의 은행 근거는 수동 확인액을 제외한 같은 달 원본 출금을 중복 없이 합산한다',()=>{
+ const source={businessId:'synthetic-source-business',month:'2027-04',asOf:'2027-04-12'};
+ const actual={id:'synthetic-bank',business_id:source.businessId,txn_date:'2027-04-02',amount:45000,direction:'out'};
+ const transactions=[actual,{...actual},{...actual,id:'synthetic-ledger',txn_date:'2027-04-10',amount:25000},
+  {...actual,id:'incoming',direction:'in',amount:999999},{...actual,id:'other-business',business_id:'other'},
+  {...actual,id:'old-month',txn_date:'2027-03-31'},{...actual,id:'future',txn_date:'2027-04-13'},
+  {...actual,id:'bad-date',txn_date:'2027-04-31'},...[-1,0,Infinity,Number.MAX_SAFE_INTEGER+1].map((amount,index)=>({...actual,id:'bad-amount-'+index,amount}))];
+ const fallback=[{date:'2027-04-10',amount:25000}];
+ assert.equal(paymentConfirmationSourceGross({...source,recordedTransactions:transactions,recordedPaymentDates:fallback}),70000);
+ assert.equal(paymentConfirmationSourceGross({...source,recordedTransactions:[],recordedPaymentDates:fallback}),0);
+ assert.equal(paymentConfirmationSourceGross({...source,recordedPaymentDates:fallback}),25000);
 });

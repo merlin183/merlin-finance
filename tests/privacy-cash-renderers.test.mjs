@@ -142,3 +142,18 @@ test('OFF calendar scrubs real generated manual-confirmation notes while preserv
  assert.match(on,/사용자 누적 출금 확인 333,333원/);assert.match(on,/22,222원/);assert.doesNotMatch(off,/333,333|444,444|22,222|123-4567-890123/);assert.match(on,/123-4567-890123/);
  assert.match(off,/사용자 누적 출금 확인/);assert.match(off,/일부 출금 확인/);assert.match(off,/2건 확인/);assert.equal(JSON.stringify({edits,editable,calendar}),before);
 });
+
+
+test('OFF masks explicit gross, returned and net amounts in the confirmation form and worksheet',()=>{
+ const draft={amount:'123457',date:'2026-11-04',memo:'합성 반환 근거',complete:true,returnEnabled:true,returnedAmount:'34567',returnedDate:'2026-11-05'};
+ const props={mode:'actual',draft,pending:false,month:range,lastActualDate:asOf,suggestedDate:false,dateInput:{current:null},onChange:()=>{},recordedAmount:123457};
+ const before=JSON.stringify(draft),on=render(PaymentConfirmationFields,props,true),off=render(PaymentConfirmationFields,props,false);
+ assert.match(on,/123457/);assert.match(on,/34567/);assert.match(on,/88,890/);assert.doesNotMatch(off,/123457|34567|88,890/);
+ assert.match(off,/반환 입금 반영/);assert.match(off,/value="2026-11-05"/);assert.match(off,/id="payment-confirmation-returned-amount"[^>]*readOnly=""/);
+ const source=worksheet.businesses[0],row={...source.rows[0],recordedAmount:123457,confirmation:{amount:123457,date:'2026-11-04',complete:true,memo:'',returnedAmount:34567,returnedDate:'2026-11-05'}};
+ const worksheetReturnProps={...worksheetProps,worksheetBusinesses:new Map([[business.id,{...source,rows:[row],actualOnlyRows:[]}]])};
+ const visible=render(CashPlanWorksheet,worksheetReturnProps,true),masked=render(CashPlanWorksheet,worksheetReturnProps,false);
+ assert.match(visible,/순지출/);assert.match(visible,/출금 123,457/);assert.match(visible,/반환 34,567/);assert.match(visible,/88,890/);
+ assert.doesNotMatch(masked,/123,457|34,567|88,890/);assert.match(masked,/순지출/);assert.match(masked,/data-financial-masked="true"/);
+ assert.equal(JSON.stringify(draft),before);
+});

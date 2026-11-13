@@ -1,6 +1,7 @@
 import {FinancialValue,FinancialText,useFinancialVisibility} from './financial-visibility';
 import {memo,useMemo,type MouseEvent} from 'react';
 import {Button} from '@/components/ui/button';
+import {FinanceLink} from './common';
 import {CashAccountBalances} from './cash-account-balances';
 import type {CashPlanBusiness} from '@/lib/finance/cash-plan';
 import type {CashEstimateBusiness} from '@/lib/finance/cash-estimates';
@@ -17,6 +18,7 @@ type WorksheetProps={
  onOpenDetail:(businessId:string,event:MouseEvent<HTMLButtonElement>)=>void;
  onEditBusiness:(businessId:string,event:MouseEvent<HTMLButtonElement>)=>void;
  onConfirmPayment?:(row:CashPlanWorksheetRow,event:MouseEvent<HTMLButtonElement>)=>void;
+ onEditActualCategory?:(row:CashPlanWorksheetActualOnlyRow,event:MouseEvent<HTMLButtonElement>)=>void;
  confirmingKey?:string;
  saving?:boolean;
  settlementIncome?:Map<string,number>;
@@ -41,27 +43,29 @@ function WorksheetItemTitle({row,plannedAccount}:{row:CashPlanWorksheetRow;plann
   {row.tax&&<span className="cash-worksheet-tax-badge">세금 · 납부기한</span>}
   {row.displayDate?<><time dateTime={row.displayDate}>{Number(row.displayDate.slice(5,7))}월 {Number(row.displayDate.slice(8))}일</time>{actualDate&&row.recordedPaymentDates.length>1&&<span className="cash-worksheet-other-payment-dates"> 외 {row.recordedPaymentDates.length-1}일</span>}</>:<span className="cash-worksheet-undated">{row.from.slice(5).replace('-','/')} ~ {row.to.slice(5).replace('-','/')}</span>}
   {' '}<span><FinancialText value={row.title}/></span>
+  {row.categoryName&&<span className="cash-worksheet-plan-category"><FinancialText value={row.categoryName}/></span>}
   {actualDate&&<><span className="cash-worksheet-actual-date-badge">실제 출금</span>{row.remainingAmount>0&&<span className="cash-worksheet-remaining-month-budget" title={privateText(row.date?`남은 계획 지급일 ${row.date}`:`${row.from} ~ ${row.to} · 남은 월 예산의 지급일은 미정입니다.`)}>{row.date?<>남은 예정 {row.date!==row.displayDate&&<><time dateTime={row.date}>{paymentDateText(row.date)}</time>{' '}</>}<FinancialValue value={digits(row.remainingAmount)}/></>:<>남은 월예산 <FinancialValue value={digits(row.remainingAmount)}/> <span>· 일자 미정</span></>}{moved&&<small>예정 계좌 <FinancialText value={plannedAccount}/></small>}</span>}</>}
   <RecordedPaymentDates row={row}/>
  </>;
 }
 
-function ActualOnlyWorksheetRow({row,account}:{row:CashPlanWorksheetActualOnlyRow;account:string}){
+function ActualOnlyWorksheetRow({row,account,onEditCategory,saving}:{row:CashPlanWorksheetActualOnlyRow;account:string;onEditCategory:WorksheetProps['onEditActualCategory'];saving?:boolean}){
  const {privateText}=useFinancialVisibility();
  return <tr className="cash-worksheet-actual-only-row">
   <th scope="row"><time dateTime={row.date}>{Number(row.date.slice(5,7))}월 {Number(row.date.slice(8))}일</time>{' '}<span title={privateText(row.description)}><FinancialText value={row.title}/></span><span className="cash-worksheet-actual-date-badge">실제 출금</span>{row.isInternal&&<span className="cash-worksheet-internal-tag">내부 자금 이동</span>}</th>
   <td className="cash-worksheet-amount"><FinancialValue value={digits(row.amount)}/></td>
-  <td className="cash-worksheet-note"><span className="cash-worksheet-source">{account}</span><span className="cash-worksheet-actual-only-source">{row.source==='bank-query'?'은행 조회':'통장 거래'}</span>{row.categoryName&&<span className="cash-worksheet-actual-only-category">{row.categoryName}</span>}</td>
+  <td className="cash-worksheet-note"><span className="cash-worksheet-source"><FinancialText value={account}/></span><span className="cash-worksheet-actual-only-source">{row.source==='bank-query'?'은행 조회':'통장 거래'}</span>{row.categoryName&&<span className="cash-worksheet-actual-only-category"><FinancialText value={row.categoryName}/></span>}{row.editableTransactionId?onEditCategory&&<Button type="button" variant="outline" size="sm" className="cash-worksheet-confirm-button" aria-label={privateText(`${row.title} 실제 거래 과목 수정`)} aria-haspopup="dialog" disabled={saving} onClick={event=>onEditCategory(row,event)}>과목 수정</Button>:<FinanceLink className="cash-worksheet-actual-apply" href={`/upload?biz=${encodeURIComponent(row.businessId)}`}>불러오기·분류</FinanceLink>}</td>
  </tr>;
 }
 
-const BusinessWorksheet=memo(function BusinessWorksheet({plan,estimate,worksheet,latest,basis,selectedBusiness,onOpenDetail,onEditBusiness,onConfirmPayment,confirmingKey,saving,settlementIncome=0}:{
+const BusinessWorksheet=memo(function BusinessWorksheet({plan,estimate,worksheet,latest,basis,selectedBusiness,onOpenDetail,onEditBusiness,onConfirmPayment,onEditActualCategory,confirmingKey,saving,settlementIncome=0}:{
  plan:CashPlanBusiness;estimate:CashEstimateBusiness|undefined;
  worksheet:CashPlanWorksheetBusiness|undefined;
  latest:LatestCashBusiness|undefined;
  basis:WorksheetProps['basis'];selectedBusiness:string;onOpenDetail:WorksheetProps['onOpenDetail'];
  onEditBusiness:WorksheetProps['onEditBusiness'];
  onConfirmPayment:WorksheetProps['onConfirmPayment'];confirmingKey:WorksheetProps['confirmingKey'];saving:WorksheetProps['saving'];
+ onEditActualCategory:WorksheetProps['onEditActualCategory'];
  settlementIncome?:number;
 }){
  const {privateText}=useFinancialVisibility();
@@ -88,11 +92,13 @@ const BusinessWorksheet=memo(function BusinessWorksheet({plan,estimate,worksheet
     <colgroup><col className="cash-worksheet-item-col"/><col className="cash-worksheet-money-col"/><col className="cash-worksheet-note-col"/></colgroup>
     <thead><tr><th scope="col">품목</th><th scope="col">금액</th><th scope="col">비고</th></tr></thead>
     <tbody>{reviewRows.length?reviewRows.map(entry=>{
-     if(entry.kind==='actual')return <ActualOnlyWorksheetRow key={entry.key} row={entry.row} account={accounts.get(entry.row.accountId)||'계좌 미지정'}/>;
+     if(entry.kind==='actual')return <ActualOnlyWorksheetRow key={entry.key} row={entry.row} account={accounts.get(entry.row.accountId)||'계좌 미지정'} onEditCategory={onEditActualCategory} saving={saving}/>;
      const row=entry.row;
+     const returnedDate=row.confirmation?.returnedDate;
+     const returnedAmount=row.confirmation?.returnedAmount&&returnedDate&&(row.date!==null||(returnedDate>=row.from&&returnedDate<=row.to))?row.confirmation.returnedAmount:0;
      return <tr key={entry.key} className={row.tax?'cash-worksheet-tax-row':''}>
      <th scope="row"><WorksheetItemTitle row={row} plannedAccount={accounts.get(row.accountId??'')||'계좌 미지정'}/></th>
-     <td className="cash-worksheet-amount">{row.recordedAmount!==null&&row.recordedAmount>0&&row.recordedAmount!==row.originalAmount?<><del className="cash-worksheet-estimate-changed"><span className="sr-only">추정 금액 </span><FinancialValue value={digits(row.originalAmount)}/></del><span className="cash-worksheet-actual"><span className="sr-only">반영 출금 </span><FinancialValue value={digits(row.recordedAmount)}/></span></>:<FinancialValue value={digits(row.originalAmount)}/>}</td>
+     <td className="cash-worksheet-amount">{returnedAmount>0?<><span className="cash-worksheet-net-label">순지출</span><strong><FinancialValue value={digits(Math.max(0,(row.recordedAmount??0)-returnedAmount))}/></strong><small className="cash-worksheet-returned"><span>출금 <FinancialValue value={digits(row.recordedAmount??0)}/></span><span>반환 <FinancialValue value={digits(returnedAmount)}/></span></small></>:row.recordedAmount!==null&&row.recordedAmount>0&&row.recordedAmount!==row.originalAmount?<><del className="cash-worksheet-estimate-changed"><span className="sr-only">추정 금액 </span><FinancialValue value={digits(row.originalAmount)}/></del><span className="cash-worksheet-actual"><span className="sr-only">반영 출금 </span><FinancialValue value={digits(row.recordedAmount)}/></span></>:<FinancialValue value={digits(row.originalAmount)}/>}</td>
      <td className="cash-worksheet-note">
       <span className={`cash-worksheet-payment-status cash-worksheet-payment-${row.status}`} title={privateText(row.status==='confirmed'||row.status==='confirmed-partial'?row.statusLabel:row.reconciliationReason||row.statusLabel)}>{row.tax&&row.status==='paid'?'납부 완료':row.status==='confirmed'?'확인 완료':row.status==='confirmed-partial'?'일부 확인':row.status==='confirmation-needed'||row.recordedAmount===null?'확인 필요':row.recordedAmount>0?'출금 반영':'미반영'}</span>
       <span className="cash-worksheet-source"><FinancialText value={accounts.get((row.displayDateIsActual?(row.sourceAccountId??row.accountId):row.accountId)??'')||'계좌 미지정'}/></span>
@@ -114,11 +120,11 @@ const BusinessWorksheet=memo(function BusinessWorksheet({plan,estimate,worksheet
  </section>;
 });
 
-export function CashPlanWorksheet({plans,estimates,worksheetBusinesses,latestBalances,basis,selectedBusiness,onOpenDetail,onEditBusiness,onConfirmPayment,confirmingKey,saving,settlementIncome}:WorksheetProps){
+export function CashPlanWorksheet({plans,estimates,worksheetBusinesses,latestBalances,basis,selectedBusiness,onOpenDetail,onEditBusiness,onConfirmPayment,onEditActualCategory,confirmingKey,saving,settlementIncome}:WorksheetProps){
  return <div className="cash-worksheet-scroll" role="region" aria-label="사업자별 지출 계획표. 좁은 화면에서는 좌우로 이동할 수 있습니다." tabIndex={0}>
   <details className="cash-worksheet-legend"><summary>표 읽는 법</summary><p>실제 출금이 다르면 <del>추정액</del> 아래에 실제액을 표시합니다. 잔액은 남은 예산만 차감합니다.</p><p>동기화한 은행 출금도 계획에 반영합니다. 비고의 ‘확인’으로 지급 여부를 직접 반영할 수 있습니다.</p></details>
   <div className="cash-worksheet-grid" style={{gridTemplateColumns:`repeat(${Math.min(plans.length,4)},minmax(216px,1fr))`}}>
-   {plans.map(plan=><BusinessWorksheet key={plan.business.id} plan={plan} estimate={estimates.get(plan.business.id)} worksheet={worksheetBusinesses.get(plan.business.id)} latest={latestBalances.get(plan.business.id)} basis={basis} selectedBusiness={selectedBusiness} onOpenDetail={onOpenDetail} onEditBusiness={onEditBusiness} onConfirmPayment={onConfirmPayment} confirmingKey={confirmingKey} saving={saving} settlementIncome={settlementIncome?.get(plan.business.id)??0}/>)}
+   {plans.map(plan=><BusinessWorksheet key={plan.business.id} plan={plan} estimate={estimates.get(plan.business.id)} worksheet={worksheetBusinesses.get(plan.business.id)} latest={latestBalances.get(plan.business.id)} basis={basis} selectedBusiness={selectedBusiness} onOpenDetail={onOpenDetail} onEditBusiness={onEditBusiness} onConfirmPayment={onConfirmPayment} onEditActualCategory={onEditActualCategory} confirmingKey={confirmingKey} saving={saving} settlementIncome={settlementIncome?.get(plan.business.id)??0}/>)}
   </div>
  </div>;
 }

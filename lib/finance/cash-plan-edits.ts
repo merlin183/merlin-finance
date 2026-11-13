@@ -1,5 +1,7 @@
 import {z} from 'zod';
 import {today} from './format';
+import {cashPlanPaymentConfirmationMemoError} from './cash-plan-payment-confirmation';
+import {cashPlanCategoryMemoError} from './cash-plan-category';
 
 export type PaymentKind='general'|'tax';
 export type PaymentStatus='pending'|'paid';
@@ -58,6 +60,8 @@ const paymentConfirmationSchema=saveSchema.omit({action:true,payment_kind:true,p
 
 export const cashPlanChangeSchema=z.discriminatedUnion('action',[saveSchema,deleteSchema,paymentStatusSchema,paymentConfirmationSchema]).superRefine((change,ctx)=>{
  if(change.action!=='save'&&change.action!=='payment_confirmation')return;
+ const categoryError=cashPlanCategoryMemoError(change.memo);
+ if(categoryError)ctx.addIssue({code:z.ZodIssueCode.custom,message:categoryError,path:['memo']});
  if(change.month==='*'&&(!change.excluded||change.source_type==='manual'))ctx.addIssue({code:z.ZodIssueCode.custom,message:'전체 기간에는 기존 항목의 제외만 저장할 수 있습니다.',path:['month']});
  if(change.plan_date&&(change.month==='*'||!change.plan_date.startsWith(`${change.month}-`)))ctx.addIssue({code:z.ZodIssueCode.custom,message:'지출일은 수정할 월 안에서 선택해주세요.',path:['plan_date']});
  if(change.source_type!=='estimated'&&!z.string().uuid().safeParse(change.source_key).success)ctx.addIssue({code:z.ZodIssueCode.custom,message:'원본 항목 식별자를 확인해주세요.',path:['source_key']});
@@ -67,6 +71,10 @@ export const cashPlanChangeSchema=z.discriminatedUnion('action',[saveSchema,dele
   if(change.month==='*'||change.excluded)ctx.addIssue({code:z.ZodIssueCode.custom,message:'제외된 계획에는 출금 확인을 저장할 수 없습니다.',path:['month']});
   if(!cleared&&(change.confirmed_amount===null||change.confirmed_date===null))ctx.addIssue({code:z.ZodIssueCode.custom,message:'실제 출금일과 금액을 함께 입력해주세요.',path:['confirmed_date']});
   if(change.confirmed_date&&(!change.confirmed_date.startsWith(`${change.month}-`)||change.confirmed_date>today()))ctx.addIssue({code:z.ZodIssueCode.custom,message:'실제 출금일은 해당 월의 오늘 이전 날짜로 입력해주세요.',path:['confirmed_date']});
+  if(!cleared&&change.confirmed_amount!==null){
+   const memoError=cashPlanPaymentConfirmationMemoError(change.confirmation_memo,change.confirmed_amount,change.month,today());
+   if(memoError)ctx.addIssue({code:z.ZodIssueCode.custom,message:memoError,path:['confirmation_memo']});
+  }
   if(cleared&&change.version===0)ctx.addIssue({code:z.ZodIssueCode.custom,message:'저장된 출금 확인만 해제할 수 있습니다.',path:['version']});
  }else{
   if(change.payment_kind==='tax'&&(change.source_type!=='manual'||change.month==='*'||change.plan_date===null||change.amount<=0))ctx.addIssue({code:z.ZodIssueCode.custom,message:'세금은 금액과 납부기일이 있는 일회성 직접 추가 항목으로 등록해주세요.',path:['payment_kind']});

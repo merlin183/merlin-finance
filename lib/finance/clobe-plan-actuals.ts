@@ -1,4 +1,4 @@
-import {cashEstimateRecordedTransactions,type CashEstimateOptions,type CashEstimates} from './cash-estimates';
+import {cashEstimateRecordedTransactions,cashPlanInternalOrLoan,type CashEstimateOptions,type CashEstimates} from './cash-estimates';
 import {parseFinanceDate} from './date-range';
 import {calendarMonthRange} from './transaction-calendar';
 import {normalizeSourceDetails,sourceDetailFields} from './source-details';
@@ -10,7 +10,7 @@ export type BankPlanActual={account_id:string;business_id:string;external_transa
 export type BankPlanCoverage={account_id:string;business_id:string;from:string;to:string;collected_at:string|null;synced_at:string;status:'complete'|'confirmation-needed';reason:string|null;source:'clobe';currency:'KRW'};
 export type BankPlanEvidence='none'|'bank-query'|'mixed';
 export type BankPlanCoverageStatus='complete'|'confirmation-needed'|'uncollected';
-export type CashPlanActualTarget={key:string;businessId:string;source_type:'estimated'|'registered'|'manual';source_key:string;month:string;title:string;accountId:string|null;sourceAccountId:string|null;paymentKind?:'general'|'tax';active?:boolean};
+export type CashPlanActualTarget={key:string;businessId:string;source_type:'estimated'|'registered'|'manual';source_key:string;month:string;title:string;accountId:string|null;sourceAccountId:string|null;categoryId?:string|null;categoryConflictReason?:string|null;paymentKind?:'general'|'tax';active?:boolean};
 export type CashPlanActualMatch={transactions:Transaction[];bankTransactionIds:Set<string>;coverage:BankPlanCoverageStatus;reason:string|null;known:boolean;ambiguous:boolean};
 
 const normalized=(value:string)=>value.normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase();
@@ -113,8 +113,26 @@ export function unionBankPlanTransactions(input:Dataset,asOf:string){
  * duplicate manual/registered/estimated candidate requires user confirmation. */
 export function reconcileCashPlanActuals(data:Dataset,asOf:string,targets:readonly CashPlanActualTarget[],original:CashEstimates,options:CashEstimateOptions={}):Map<string,CashPlanActualMatch>{
  const union=unionBankPlanTransactions(data,asOf),result=new Map<string,CashPlanActualMatch>();
+ const categories=new Map(data.categories.map(category=>[category.id,category]));
+ const ledgerIds=new Set(data.transactions.map(row=>row.id)),bankCategoryGuards=new Map<string,string>();
+ const categoryLabel=(value:string)=>value.normalize('NFKC').trim().replace(/\s+/g,'').toLowerCase();
+ for(const row of union.rows){
+  if(ledgerIds.has(row.id)||!union.bankById.has(row.id))continue;
+  // This exact provider-only label is a compatibility guard, never a ledger
+  // classification. A saved row always keeps its administrator-selected category.
+  const label=/^Clobe 원본 분류\(표시용\): ([^\r\n]+)$/.exec(row.source_details?.note??'')?.[1];
+  if(!label)continue;
+  const matching=data.categories.filter(category=>categoryLabel(category.name)===categoryLabel(label));
+  if(matching.length===1)bankCategoryGuards.set(row.id,matching[0].id);
+ }
  const keys=targets.filter(item=>item.source_type==='estimated').map(item=>item.source_key);
- const recorded=cashEstimateRecordedTransactions({...data,transactions:union.rows},asOf,options,original,keys);
+ const recorded=new Map<string,Transaction[]>();
+ for(const month of new Set(targets.map(target=>target.month))){
+  const monthly=targets.filter(item=>item.source_type==='estimated'&&item.month===month&&!item.categoryConflictReason),monthlyKeys=monthly.map(item=>item.source_key);
+  const sourceCategories=new Map(monthly.map(item=>[item.source_key,item.categoryId??null]));
+  const matches=cashEstimateRecordedTransactions({...data,transactions:union.rows},asOf,options,original,monthlyKeys,sourceCategories,bankCategoryGuards);
+  for(const [key,rows] of matches){const combined=recorded.get(key)??[];combined.push(...rows.filter(row=>row.txn_date.slice(0,7)===month));recorded.set(key,combined);}
+ }
  const groupById=new Map<string,string>();for(const [key,rows] of recorded)for(const row of rows)groupById.set(row.id,key);
  const coverageFor=(target:CashPlanActualTarget):{coverage:BankPlanCoverageStatus;reason:string|null}=>{
   const account=target.source_type==='estimated'?target.sourceAccountId:target.accountId;
@@ -128,16 +146,22 @@ export function reconcileCashPlanActuals(data:Dataset,asOf:string,targets:readon
   const coverage=coverageFor(target),manualKnown=target.paymentKind!=='tax'&&target.accountId!==null&&meaningful(target.title)&&coverage.coverage==='complete';
   result.set(target.key,{transactions:[],bankTransactionIds:new Set(),...coverage,known:target.source_type==='estimated'||manualKnown,ambiguous:false});
  }
- const candidates=(row:Transaction,group:string|undefined,allowManual:boolean)=>targets.filter(target=>{
+ const candidates=(row:Transaction,group:string|undefined,allowManual:boolean,labels=row)=>targets.filter(target=>{
   if(target.active===false||target.businessId!==row.business_id||target.month!==row.txn_date.slice(0,7))return false;
+  const savedCategory=categories.get(row.category_id??''),category=savedCategory??categories.get(bankCategoryGuards.get(row.id)??'');
+  if(category&&target.categoryId&&target.categoryId!==category.id)return false;
+  // Provisional provider compatibility must never weaken raw loan/internal
+  // evidence. Only an actual saved ledger classification can take precedence.
+  if(cashPlanInternalOrLoan(row,savedCategory)&&(!savedCategory||target.categoryId!==savedCategory.id))return false;
+  if(data.links.some(link=>link.out_transaction_id===row.id))return false;
   if(target.source_type==='estimated')return target.source_key===group;
   if(!allowManual||target.paymentKind==='tax'||target.accountId!==row.account_id||!meaningful(target.title))return false;
-  return texts(row).includes(normalized(target.title));
+  return texts(labels).includes(normalized(target.title));
  });
  const ambiguous=(found:readonly CashPlanActualTarget[])=>{for(const target of found){const match=result.get(target.key)!;match.reason='같은 출금을 연결할 계획 항목이 여러 개이거나 은행 거래의 중복 여부가 불명확합니다.';match.known=false;match.ambiguous=true;}};
  for(const rows of recorded.values())for(const row of rows){
   const actual=union.bankById.get(row.id),labels=actual?bankRow(actual):row;
-  const found=candidates(labels,groupById.get(row.id),!!actual);
+  const found=candidates(row,groupById.get(row.id),!!actual,labels);
   if(found.length>1){ambiguous(found);continue;}
   if(found.length!==1)continue;
   const match=result.get(found[0].key)!;match.transactions.push(row);match.known=true;if(actual)match.bankTransactionIds.add(row.id);
@@ -145,12 +169,9 @@ export function reconcileCashPlanActuals(data:Dataset,asOf:string,targets:readon
  // Rows outside historical expense groups can still match a specific manual
  // plan, but observed loan/internal labels must never be guessed as payroll.
  const matchedIds=new Set([...recorded.values()].flatMap(rows=>rows.map(row=>row.id)));
- const categories=new Map(data.categories.map(category=>[category.id,category]));
  for(const row of union.rows){
   if(matchedIds.has(row.id)||!union.bankById.has(row.id))continue;
-  const category=categories.get(row.category_id??'');
-  if(row.is_internal||category?.is_internal||data.links.some(link=>link.out_transaction_id===row.id))continue;
-  const found=candidates(bankRow(union.bankById.get(row.id)!),undefined,true);
+  const found=candidates(row,undefined,true,bankRow(union.bankById.get(row.id)!));
   if(found.length>1){ambiguous(found);continue;}
   if(found.length===1){const match=result.get(found[0].key)!;match.transactions.push(row);match.known=true;match.bankTransactionIds.add(row.id);}
  }

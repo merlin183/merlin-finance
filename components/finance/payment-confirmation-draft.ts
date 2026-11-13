@@ -1,11 +1,11 @@
 import {parseFinanceDate} from '@/lib/finance/date-range';
 import {cashPlanUserMemo} from '@/lib/finance/cash-plan-memo';
 
-export type PaymentConfirmationDraft={amount:string;date:string;complete:boolean;memo:string};
+export type PaymentConfirmationDraft={amount:string;date:string;complete:boolean;memo:string;returnEnabled?:boolean;returnedAmount?:string;returnedDate?:string};
 export type PlannedPaymentDraft={amount:string;date:string;memo:string};
 export type PaymentConfirmationMode='planned'|'actual';
 export type PaymentConfirmationDrafts={planned:PlannedPaymentDraft;actual:PaymentConfirmationDraft};
-type Confirmation={amount:number;date:string;complete:boolean;memo?:string}|null;
+type Confirmation={amount:number;date:string;complete:boolean;memo?:string;returnedAmount?:number;returnedDate?:string}|null;
 
 /** A future plan edits its budget, not a payment. Existing direct confirmation
  * always opens in actual mode, including when the plan date later changes. */
@@ -30,14 +30,41 @@ export function updatePaymentConfirmationDraft(drafts:PaymentConfirmationDrafts,
 
 export function paymentConfirmationDraftsDirty(original:PaymentConfirmationDrafts,current:PaymentConfirmationDrafts):boolean{
  return (['amount','date','memo'] as const).some(key=>original.planned[key]!==current.planned[key])
-  ||(['amount','date','memo','complete'] as const).some(key=>original.actual[key]!==current.actual[key]);
+  ||(['amount','date','memo','complete'] as const).some(key=>original.actual[key]!==current.actual[key])
+  ||!!original.actual.returnEnabled!==!!current.actual.returnEnabled
+  ||(['returnedAmount','returnedDate'] as const).some(key=>(original.actual[key]??'')!==(current.actual[key]??''));
 }
 
 /** The saved actual date takes priority over a valid suggested plan date.
  * Suggestions do not establish a payment or automatically mark it complete. */
 export function initialPaymentConfirmationDraft({confirmation,recordedAmount,originalAmount,date:planDate}:{confirmation:Confirmation;recordedAmount:number|null;originalAmount:number;date?:string|null}):PaymentConfirmationDraft{
  const suggestedDate=planDate&&parseFinanceDate(planDate)?planDate:'';
- return {amount:String(confirmation?.amount??(recordedAmount!==null&&recordedAmount>0?recordedAmount:originalAmount)),date:confirmation?.date??suggestedDate,complete:confirmation?.complete??false,memo:confirmation?.memo??''};
+ return {amount:String(confirmation?.amount??(recordedAmount!==null&&recordedAmount>0?recordedAmount:originalAmount)),date:confirmation?.date??suggestedDate,complete:confirmation?.complete??false,memo:confirmation?.memo??'',
+  ...(confirmation?.returnedAmount?{returnEnabled:true,returnedAmount:String(confirmation.returnedAmount),returnedDate:confirmation.returnedDate??''}:{})};
+}
+
+type ConfirmationSourceOutflow={id:string;business_id:string;txn_date:string;amount:number;direction:string};
+
+/** The form confirms a whole month. Old manual totals are never bank evidence. */
+export function paymentConfirmationSourceGross({businessId,month,asOf,recordedTransactions,recordedPaymentDates=[]}:{businessId:string;month:string;asOf:string;recordedTransactions?:readonly ConfirmationSourceOutflow[];recordedPaymentDates?:readonly {date:string;amount:number}[]}):number{
+ const valid=(date:string,amount:number)=>!!parseFinanceDate(date)&&date.startsWith(month+'-')&&date<=asOf&&Number.isSafeInteger(amount)&&amount>0;
+ if(recordedTransactions!==undefined){
+  const seen=new Set<string>();let total=0;
+  for(const row of recordedTransactions){
+   if(row.direction!=='out'||row.business_id!==businessId||!valid(row.txn_date,row.amount)||seen.has(row.id))continue;
+   seen.add(row.id);total+=row.amount;
+  }
+  return total;
+ }
+ return recordedPaymentDates.reduce((sum,payment)=>sum+(valid(payment.date,payment.amount)?payment.amount:0),0);
+}
+
+/** Only an explicit return choice can reinterpret an older net confirmation. */
+export function paymentConfirmationReturnPatch(draft:PaymentConfirmationDraft,enabled:boolean,recordedAmount:number|null=0,lastActualDate=''):Partial<PaymentConfirmationDraft>{
+ if(!enabled)return {returnEnabled:false};
+ const entered=Number(draft.amount.replaceAll(',','').trim()),validEntered=Number.isSafeInteger(entered)&&entered>0,gross=Math.max(validEntered?entered:0,recordedAmount??0);
+ return {returnEnabled:true,amount:String(gross),returnedAmount:draft.returnedAmount??(validEntered&&gross>entered?String(gross-entered):''),
+  returnedDate:draft.returnedDate??(draft.date&&draft.date<=lastActualDate?draft.date:lastActualDate)};
 }
 
 export function paymentConfirmationDraftError(draft:PaymentConfirmationDraft,month:string,asOf:string):string{
@@ -45,12 +72,20 @@ export function paymentConfirmationDraftError(draft:PaymentConfirmationDraft,mon
  if(!/^\d+$/.test(amount)||!Number.isSafeInteger(Number(amount))||Number(amount)<=0)return '실제 출금액은 1원 이상의 원 단위 정수로 입력해 주세요.';
  if(!parseFinanceDate(draft.date)||draft.date.slice(0,7)!==month)return '실제 출금일은 이 계획의 달 안에서 선택해 주세요.';
  if(draft.date>asOf)return '아직 지나지 않은 날짜를 실제 출금일로 확인할 수 없습니다. 예정일·금액은 ‘예정 금액 수정’에서 저장해 주세요.';
+ if(draft.returnEnabled){
+  const returned=(draft.returnedAmount??'').replaceAll(',','').trim();
+  if(!/^\d+$/.test(returned)||!Number.isSafeInteger(Number(returned))||Number(returned)<=0)return '돌려받은 금액은 1원 이상의 원 단위 정수로 입력해 주세요.';
+  if(Number(returned)>Number(amount))return '돌려받은 금액은 반환 전 누적 출금액을 넘을 수 없습니다.';
+  if(!parseFinanceDate(draft.returnedDate??'')||draft.returnedDate!.slice(0,7)!==month)return '반환 입금일은 이 계획의 달 안에서 선택해 주세요.';
+  if(draft.returnedDate!>asOf)return '아직 지나지 않은 날짜를 반환 입금일로 확인할 수 없습니다.';
+ }
  if(draft.memo.length>2000)return '확인 메모는 2,000자 이내로 입력해 주세요.';
  return '';
 }
 
 export function paymentConfirmationDraftValues(draft:PaymentConfirmationDraft){
- return {amount:Number(draft.amount.replaceAll(',','').trim()),date:draft.date,complete:draft.complete,memo:draft.memo.trim()};
+ return {amount:Number(draft.amount.replaceAll(',','').trim()),date:draft.date,complete:draft.complete,memo:draft.memo.trim(),
+  ...(draft.returnEnabled?{returnedAmount:Number((draft.returnedAmount??'').replaceAll(',','').trim()),returnedDate:draft.returnedDate??''}:{})};
 }
 
 export function plannedPaymentDraftError(draft:PlannedPaymentDraft,month:string):string{

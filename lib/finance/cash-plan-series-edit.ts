@@ -2,7 +2,7 @@ import {z} from 'zod';
 import type {Dataset} from './types';
 import {cashPlanChangeSchema,type CashPlanChange,type CashPlanEdit} from './cash-plan-edits';
 import {buildCashPlanSeriesBreakdown,type CashPlanSeriesBreakdownRow} from './cash-plan-series';
-import {fixedCostMemo,readFixedCostMemo} from './cash-plan-series-memo';
+import {fixedCostMemo,readFixedCostMemo,stripFixedCostMarkerLines} from './cash-plan-series-memo';
 import {mergeCashPlanUserMemo} from './cash-plan-memo';
 import {parseFinanceDate} from './date-range';
 
@@ -60,7 +60,7 @@ export function buildCashPlanFixedCostChange(input:CashPlanFixedCostChangeInput)
   if(normalizedTitle(draft.title)!==normalizedTitle(row.title))assertDistinctTitle([...detail.includedRows,...detail.excludedRows],draft.title,row.id);
   const marker=readFixedCostMemo(row.effectiveMemo),series=input.data.cash_plan_series?.find(item=>item.id===row.id&&item.business_id===input.businessId);
   if(series&&draft.groupLabel!==undefined&&draft.groupLabel!==row.groupLabel)throw Error('기존 반복 고정비의 원본 분류는 이 달의 수정에서 변경할 수 없습니다.');
-  memo=marker&&!series?fixedCostMemo(draft.groupLabel??marker.groupLabel,draft.memo):mergeCashPlanUserMemo(row.effectiveMemo,draft.memo);
+  memo=marker&&!series?fixedCostMemo(draft.groupLabel??marker.groupLabel,stripFixedCostMarkerLines(mergeCashPlanUserMemo(row.effectiveMemo,draft.memo))):mergeCashPlanUserMemo(row.effectiveMemo,draft.memo);
   ({title,amount,accountId,date}=draft);
  }
  if(memo.length>2000)throw Error('고정비 분류를 포함한 메모가 너무 깁니다. 내용을 조금 줄여주세요.');

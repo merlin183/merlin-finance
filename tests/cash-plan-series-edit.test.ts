@@ -9,6 +9,7 @@ import {buildCashPlanWorksheetModel} from '../lib/finance/cash-plan-worksheet-mo
 import {cashPlanChangesSchema,type CashPlanEdit,type CashPlanChange} from '../lib/finance/cash-plan-edits';
 import {emptyDataset,type Dataset} from '../lib/finance/types';
 import {buildCashPlanFixedCostForwardAddChange,buildCashPlanFixedCostForwardChange,fixedCostForwardRequestSchema} from '../lib/finance/cash-plan-series-forward';
+import {mergeCashPlanCategory,readCashPlanCategory} from '../lib/finance/cash-plan-category';
 
 const businessId='10000000-0000-4000-8000-000000000001',accountId='20000000-0000-4000-8000-000000000001',secondAccount='20000000-0000-4000-8000-000000000002';
 const seriesId='30000000-0000-4000-8000-000000000001',newId='40000000-0000-4000-8000-000000000001',saveId='40000000-0000-4000-8000-000000000002';
@@ -27,6 +28,16 @@ function persisted(change:CashPlanChange,version=1):CashPlanEdit{
 }
 const existingInput=(data=fixture(),edits:CashPlanEdit[]=[])=>({data,edits,businessId,month,rowId:seriesId,expectedVersion:0,expectedEditId:null,newEditId:saveId,action:'save' as const,draft:draft()});
 const additionInput=(data=fixture(),edits:CashPlanEdit[]=[])=>({data,edits,businessId,month,id:newId,draft:draft({title:'Synthetic monthly extra',amount:25,date:null,accountId:null,groupLabel:'기타 고정비'})});
+
+test('standalone manual and estimated fixed-cost edits preserve plan category metadata when amount date and visible memo change',()=>{
+ const categoryId='60000000-0000-4000-8000-000000000001',data=fixture({cash_plan_series:[],categories:[{id:categoryId,name:'광고선전비',group_name:'영업지출',is_internal:false,is_operating:true}]});
+ for(const source_type of ['manual','estimated'] as const){
+  const saved:CashPlanEdit={id:saveId,business_id:businessId,source_type,source_key:source_type==='manual'?saveId:sourceKey,month,title:'Synthetic standalone',account_id:accountId,plan_date:'2026-11-20',amount:80,memo:mergeCashPlanCategory(fixedCostMemo('기타 고정비','Original note'),categoryId),excluded:false,version:3,updated_at:'2026-10-28T00:00:00Z'};
+  const change=buildCashPlanFixedCostChange({data,edits:[saved],businessId,month,rowId:saveId,expectedVersion:3,expectedEditId:saveId,action:'save',draft:draft({title:saved.title,memo:'Updated note'})});
+  assert.equal(change.action,'save');if(change.action!=='save')continue;
+  assert.equal(readCashPlanCategory(change.memo,data.categories)?.categoryId,categoryId);assert.equal(readFixedCostMemo(change.memo)?.groupLabel,'기타 고정비');assert.equal(cashPlanUserMemo(change.memo),'Updated note');
+ }
+});
 
 test('selected-month save keeps source identity and snapshot CAS while amount/date/account changes feed both views',()=>{
  const data=fixture(),before=JSON.stringify(data),input=existingInput(data),change=buildCashPlanFixedCostChange(input);
